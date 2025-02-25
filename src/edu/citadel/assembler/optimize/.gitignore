@@ -1,0 +1,11 @@
+/Allocate.class
+/BranchingReduction.class
+/ConstFolding.class
+/ConstNeg.class
+/DeadCodeElimination.class
+/IncDec.class
+/IncDec2.class
+/LoadSpecialConstants.class
+/Optimization.class
+/Optimizations.class
+/ReturnSpecialConstants.class

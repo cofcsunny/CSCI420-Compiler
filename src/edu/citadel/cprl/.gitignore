@@ -1,0 +1,16 @@
+/ArrayType.class
+/Compiler.class
+/IdTable.class
+/IdType.class
+/LoopContext.class
+/Parser.class
+/ParserOld.class
+/RecordType.class
+/Scanner.class
+/Scope.class
+/ScopeLevel.class
+/StringType.class
+/SubprogramContext.class
+/Symbol.class
+/Token.class
+/Type.class
