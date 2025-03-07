@@ -21,16 +21,16 @@ public final class Parser
     /**
      * Symbols that can follow a statement.
      */
-    private final Set<Symbol> stmtFollowers = EnumSet.of(
-// ...TODO
-      );
+    private final Set<Symbol> stmtFollowers = EnumSet.of(Symbol.semicolon, Symbol.rightBrace,
+    		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma, Symbol.rightParen, 
+    		Symbol.leftParen, Symbol.equals, Symbol.plus, Symbol.minus, Symbol.times, 
+    		Symbol.returnRW);
 
     /**
      * Symbols that can follow a subprogram declaration.
      */
-    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(
-// ...TODO
-      );
+    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.semicolon, 
+    		Symbol.rightBrace, Symbol.EOF);
 
     /**
      * Symbols that can follow a factor.
@@ -115,7 +115,10 @@ public final class Parser
             parseInitialDecl();
       }
 
-    //initialDecl = constDecl | varDecl | typeDecl .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>initialDecl = constDecl | varDecl | typeDecl .</code>
+     */
     private void parseInitialDecl() throws IOException
       {
     	try {
@@ -131,11 +134,14 @@ public final class Parser
         	}
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(initialDeclFollowers());
     	}
       }
 
-    //constDecl = "const" constId ":=" [ "-" ] literal ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>constDecl = "const" constId ":=" [ "-" ] literal ";" .</code>
+     */
     private void parseConstDecl() throws IOException
       {
     	try {
@@ -151,7 +157,7 @@ public final class Parser
     		idTable.add(idToken,IdType.constantId);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(initialDeclFollowers());
     	}
       }
 
@@ -279,9 +285,13 @@ public final class Parser
           }
       }
 
-    //compositeInitializer = "{" initializer { "," initializer } "}" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>compositeInitializer = "{" initializer { "," initializer } "}" .</code>
+     */
     private void parseCompositeInitializer() throws IOException
       {
+//...
     	try {
     		match(Symbol.leftBrace);
     		parseInitializer();
@@ -292,7 +302,7 @@ public final class Parser
     		match(Symbol.rightBrace);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(EnumSet.of(Symbol.rightBrace, Symbol.colon));
     	}
       }
 
@@ -308,9 +318,9 @@ public final class Parser
           {
             switch (scanner.lookahead(4).symbol())
               {
-                case Symbol.arrayRW  -> parseArrayTypeDecl();
-                case Symbol.recordRW -> parseRecordTypeDecl();
-                case Symbol.stringRW -> parseStringTypeDecl();
+                case arrayRW  -> parseArrayTypeDecl();
+                case recordRW -> parseRecordTypeDecl();
+                case stringRW -> parseStringTypeDecl();
                 default ->
                   {
                     Position errorPos = scanner.lookahead(4).position();
@@ -326,9 +336,14 @@ public final class Parser
           }
       }
 
-    //arrayTypeDecl = "type" typeId "=" "array" "[" intConstValue "]" "of" typeName ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>arrayTypeDecl = "type" typeId "=" "array" "[" intConstValue "]"
+     *                       "of" typeName ";" .</code>
+     */
     private void parseArrayTypeDecl() throws IOException
       {
+// ...
     	try{
     		match(Symbol.typeRW);
     		var idToken = scanner.token();
@@ -344,7 +359,7 @@ public final class Parser
     		idTable.add(idToken, IdType.arrayTypeId);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(initialDeclFollowers());
     	}
       }
 
@@ -362,7 +377,6 @@ public final class Parser
             match(Symbol.rightBracket);
             match(Symbol.ofRW);
             parseTypeName();
-
           }
         catch (ParserException e)
           {
@@ -407,7 +421,10 @@ public final class Parser
           }
       }
 
-    //fieldDecls = { fieldDecl } .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>fieldDecls = { fieldDecl } .</code>
+     */
     private void parseFieldDecls() throws IOException
       {
     	while(scanner.symbol()==Symbol.identifier) {
@@ -430,11 +447,14 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(EnumSet.of(Symbol.identifier, Symbol.rightBrace));
     	}
       }
 
-  //"type" typeId "=" "string" "[" intConstValue "]" ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";" .</code>
+     */
     private void parseStringTypeDecl() throws IOException
       {
     	try {
@@ -450,7 +470,7 @@ public final class Parser
     		idTable.add(idToken, IdType.stringTypeId);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(initialDeclFollowers());
     	}
       }
 
@@ -531,22 +551,25 @@ public final class Parser
     	}
       }
 
-    //subprogramDecl = procedureDecl | functionDecl .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>subprogramDecl = procedureDecl | functionDecl .</code>
+     */
     private void parseSubprogramDecl() throws IOException
       {
     	try {
     		switch(scanner.symbol()) {
-	    		case Symbol.procRW -> parseProcedureDecl();
-	    		case Symbol.funRW -> parseFunctionDecl();
+	    		case procRW -> parseProcedureDecl();
+	    		case funRW -> parseFunctionDecl();
 	    		default -> throw error("Invalid subprogram declaration");
     		}
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(subprogDeclFollowers);
     	}
     	
       }
-    
+
     /**
      * Parse the following grammar rule:<br>
      * <code>procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
@@ -615,7 +638,7 @@ public final class Parser
     		match(Symbol.rightBrace);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-    		recover(emptySet);
+    		recover(subprogDeclFollowers);
     	}
       }
 
@@ -625,14 +648,17 @@ public final class Parser
      */
     private void parseParameterDecls() throws IOException
       {
-		parseParameterDecl();
+    	parseParameterDecl();
 		while(scanner.symbol()==Symbol.comma) {
 			matchCurrentSymbol();
 			parseParameterDecl();
 		}
       }
 
-    //parameterDecl = [ "var" ] paramId ":" typeName 
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>parameterDecl = [ "var" ] paramId ":" typeName .</code>
+     */
     private void parseParameterDecl() throws IOException
       {
     	try {
@@ -644,11 +670,14 @@ public final class Parser
     		parseTypeName();
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
     	}
       }
 
-    //statements = { statement } .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>statements = { statement } .</code>
+     */
     private void parseStatements() throws IOException
       {
     	while(scanner.symbol().isStmtStarter()) {
@@ -657,13 +686,15 @@ public final class Parser
       }
 
     /**
-     * statement = assignmentStmt | procedureCallStmt | compoundStmt | ifStmt
+     * Parse the following grammar rule:<br>
+     * <code>statement = assignmentStmt | procedureCallStmt | compoundStmt | ifStmt
      *                 | loopStmt       | forLoopStmt       | exitStmt     | readStmt
-     *                 | writeStmt      | writelnStmt       | returnStmt .
+     *                 | writeStmt      | writelnStmt       | returnStmt .</code>
      */
     private void parseStatement() throws IOException
       {
-        try {
+        try
+          {
             if (scanner.symbol() == Symbol.identifier)
               {
                 // Handle identifiers based on how they are declared,
@@ -682,73 +713,90 @@ public final class Parser
                   }
                 else
                   {
-                		if (scanner.lookahead(2).symbol() == Symbol.leftParen) {
-                			parseProcedureCallStmt();
-                		}else {
-                			throw error("Identifier \"" + idStr + "\" has not been declared.");
-                		}
+            		if (scanner.lookahead(2).symbol() == Symbol.leftParen) {
+            			parseProcedureCallStmt();
+            		}else {
+            			throw error("Identifier \"" + idStr + "\" has not been declared.");
+            		}
                   }
               }
             else
               {
-                switch (scanner.symbol())
-                  {
-                  case leftBrace -> parseCompoundStmt();
-                  case ifRW      -> parseIfStmt();
-                  case whileRW -> parseLoopStmt();
-                  case loopRW -> parseLoopStmt();
-                  case assign -> parseAssignmentStmt();
-                  case leftParen -> parseProcedureCallStmt();
-                  case forRW -> parseForLoopStmt();
-                  case exitRW -> parseExitStmt();
-                  case readRW -> parseReadStmt();
-                  case writeRW -> parseWriteStmt();
-                  case writelnRW -> parseWritelnStmt();
-                  case returnRW -> parseReturnStmt();
-                  default -> throw internalError(scanner.token()
-                                   + " cannot start a statement.");
-                  }
+            	switch (scanner.symbol())
+                {
+                case leftBrace -> parseCompoundStmt();
+                case ifRW      -> parseIfStmt();
+                case whileRW -> parseLoopStmt();
+                case loopRW -> parseLoopStmt();
+                case assign -> parseAssignmentStmt();
+                case leftParen -> parseProcedureCallStmt();
+                case forRW -> parseForLoopStmt();
+                case exitRW -> parseExitStmt();
+                case readRW -> parseReadStmt();
+                case writeRW -> parseWriteStmt();
+                case writelnRW -> parseWritelnStmt();
+                case returnRW -> parseReturnStmt();
+                default -> throw internalError(scanner.token()
+                                 + " cannot start a statement.");
+                }
               }
           }
         catch (ParserException e)
           {
             errorHandler.reportError(e);
-            recover(emptySet);
+            // Error recovery here is complicated for identifiers since they can both
+            // start a statement and appear elsewhere in the statement.  (Consider,
+            // for example, an assignment statement or a procedure call statement.)
+            // Since the most common error is to declare or reference an identifier
+            // incorrectly, we will assume that this is the case and advance to the
+            // end of the current statement before performing error recovery.
+            scanner.advanceTo(EnumSet.of(Symbol.semicolon, Symbol.rightBrace));
+            recover(stmtFollowers);
           }
       }
 
-
-    //assignmentStmt = variable ":=" expression ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>assignmentStmt = variable ":=" expression ";" .</code>
+     */
     private void parseAssignmentStmt() throws IOException
       {
+// ...
     	try{
-    		parseVariable();
-    		match(Symbol.assign);
-    		parseExpression();
-    		match(Symbol.semicolon);
+            parseVariable(); 
+            match(Symbol.assign);
+            parseExpression();
+            match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
-      }
 
-    //compoundStmt = "{" statements "}" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>compoundStmt = "{" statements "}" .<\code>
+     */
     private void parseCompoundStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.leftBrace);
     		parseStatements();
     		match(Symbol.rightBrace);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
-    //ifStmt = "if" booleanExpr "then" statement  [ "else" statement ] .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>ifStmt = "if" booleanExpr "then" statement  [ "else" statement ] .</code>
+     */
     private void parseIfStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.ifRW);
     		parseExpression();
@@ -760,24 +808,29 @@ public final class Parser
     		}
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>loopStmt = [ "while" booleanExpr ] "loop" statement .</code>
+     */
     private void parseLoopStmt() throws IOException
-    {
-  	try {
-  		if(scanner.symbol()==Symbol.whileRW) {
-  			matchCurrentSymbol();
-  			parseExpression();
-  		}
-  		match(Symbol.loopRW);
-  		parseStatement();
-  	}catch(ParserException e) {
-  		errorHandler.reportError(e);
-          recover(emptySet);
-  	}
-    }
+      {
+// ...
+    	try {
+      		if(scanner.symbol()==Symbol.whileRW) {
+      			matchCurrentSymbol();
+      			parseExpression();
+      		}
+      		match(Symbol.loopRW);
+      		parseStatement();
+      	}catch(ParserException e) {
+      		errorHandler.reportError(e);
+              recover(stmtFollowers);
+      	}
+      }
 
     /**
      * Parse the following grammar rule:<br>
@@ -802,19 +855,24 @@ public final class Parser
             parseStatement();
           }
         catch (ParserException e)
-          {
-            errorHandler.reportError(e);
-            recover(stmtFollowers);
-          }
+        {
+          errorHandler.reportError(e);
+          recover(stmtFollowers);
+        }
         finally
           {
             idTable.closeScope();
           }
+        
       }
 
-    //exitStmt = "exit" [ "when" booleanExpr ] ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>exitStmt = "exit" [ "when" booleanExpr ] ";" .</code>
+     */
     private void parseExitStmt() throws IOException
       {
+// ...
     	try{
     		match(Symbol.exitRW);
     		if(scanner.symbol() == Symbol.whenRW) {
@@ -824,33 +882,41 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch (ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
-    //readStmt = "read" variable ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>readStmt = "read" variable ";" .</code>
+     */
     private void parseReadStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.readRW);
     		parseVariable();
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+    		recover(stmtFollowers);
     	}
       }
 
-    //writeStmt = "write" expressions ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>writeStmt = "write" expressions ";" .</code>
+     */
     private void parseWriteStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.writeRW);
     		parseExpressions();
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
@@ -860,7 +926,7 @@ public final class Parser
      */
     private void parseExpressions() throws IOException
       {
-		parseExpression();
+    	parseExpression();
 		while(scanner.symbol()==Symbol.comma) {
 			matchCurrentSymbol();
 			parseExpression();
@@ -890,11 +956,13 @@ public final class Parser
       }
 
     /**
-     * procedureCallStmt = procId "(" [ actualParameters ] ")" ";" .
-     *       actualParameters = expressions .
+     * Parse the following grammar rule:<br>
+     * <code>procedureCallStmt = procId "(" [ actualParameters ] ")" ";" .
+     *       actualParameters = expressions .</code>
      */
     private void parseProcedureCallStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.identifier);
     		match(Symbol.leftParen);
@@ -903,13 +971,17 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
-    //returnStmt = "return" [ expression ] ";" .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>returnStmt = "return" [ expression ] ";" .</code>
+     */
     private void parseReturnStmt() throws IOException
       {
+// ...
     	try {
     		match(Symbol.returnRW);
     		if(scanner.symbol()!=Symbol.semicolon) {
@@ -918,7 +990,7 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
   		errorHandler.reportError(e);
-          recover(emptySet);
+          recover(stmtFollowers);
     	}
       }
 
@@ -1006,8 +1078,9 @@ public final class Parser
       }
 
     /**
-     * relation = simpleExpr [ relationalOp simpleExpr ] .
-     *   relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=" .
+     * Parse the following grammar rules:<br>
+     * <code>relation = simpleExpr [ relationalOp simpleExpr ] .<br>
+     *   relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=" .</code>
      */
     private void parseRelation() throws IOException
       {
@@ -1019,9 +1092,10 @@ public final class Parser
       }
 
     /**
-     * simpleExpr = [ signOp ] term { addingOp term } .
-     *       signOp = "+" | "-" .
-     *       addingOp = "+" | "-" .
+     * Parse the following grammar rules:<br>
+     * <code>simpleExpr = [ signOp ] term { addingOp term } .<br>
+     *       signOp = "+" | "-" .<br>
+     *       addingOp = "+" | "-" .</code>
      */
     private void parseSimpleExpr() throws IOException
       {
@@ -1036,8 +1110,9 @@ public final class Parser
       }
 
     /**
-     * term = factor { multiplyingOp factor } .
-     *       multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
+     * Parse the following grammar rules:<br>
+     * <code>term = factor { multiplyingOp factor } .<br>
+     *       multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .</code>
      */
     private void parseTerm() throws IOException
       {
@@ -1132,7 +1207,10 @@ public final class Parser
           }
       }
 
-    //constValue = ( [ "-"] literal ) | constId .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>constValue = ( [ "-"] literal | constId ).</code>
+     */
     private void parseConstValue() throws IOException
       {
     	try {
@@ -1149,11 +1227,18 @@ public final class Parser
     		}
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
+            	Symbol.rightParen, Symbol.equals, Symbol.notEqual, Symbol.lessThan, 
+            	Symbol.lessOrEqual, Symbol.greaterThan, Symbol.greaterOrEqual, Symbol.plus, 
+            	Symbol.minus, Symbol.times, Symbol.divide, 
+            	Symbol.modRW, Symbol.andRW, Symbol.orRW));
     	}
       }
 
-  //variableExpr = variable .
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>variableExpr = variable .</code>
+     */
     private void parseVariableExpr() throws IOException
       {
         try
@@ -1163,13 +1248,14 @@ public final class Parser
         catch (ParserException e)
           {
             errorHandler.reportError(e);
-            recover(emptySet);
+            recover(factorFollowers);
           }
       }
 
     /**
-     *functionCallExpr = funcId "(" [ actualParameters ] ")" .
-     *       actualParameters = expressions .
+     * Parse the following grammar rule:<br>
+     * <code>functionCallExpr = funcId "(" [ actualParameters ] ")" .
+     *       actualParameters = expressions .</code>
      */
     private void parseFunctionCallExpr() throws IOException
       {
@@ -1182,7 +1268,7 @@ public final class Parser
     		match(Symbol.rightParen);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(factorFollowers);
     	}
       }
 
