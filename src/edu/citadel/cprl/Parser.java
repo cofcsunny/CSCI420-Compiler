@@ -67,10 +67,6 @@ public final class Parser
         return followers;
       }
 
-    /**
-     * Construct a parser with the specified scanner, identifier
-     * table, and error handler.
-     */
     public Parser(Scanner scanner, IdTable idTable, ErrorHandler errorHandler)
       {
         this.scanner = scanner;
@@ -78,10 +74,7 @@ public final class Parser
         this.errorHandler = errorHandler;
       }
 
-    /**
-     * Parse the following grammar rule:<br>
-     * <code>program = initialDecls subprogramDecls .</code>
-     */
+     //program = initialDecls subprogramDecls.
     public void parseProgram() throws IOException
       {
         try
@@ -105,10 +98,7 @@ public final class Parser
           }
       }
 
-    /**
-     * Parse the following grammar rule:<br>
-     * <code>initialDecls = { initialDecl } .</code>
-     */
+    //initialDecls = { initialDecl } .
     private void parseInitialDecls() throws IOException
       {
         while (scanner.symbol().isInitialDeclStarter())
@@ -155,10 +145,7 @@ public final class Parser
     	}
       }
 
-    /**
-     * Parse the following grammar rule:<br>
-     * <code>literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .</code>
-     */
+     //literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
     private void parseLiteral() throws IOException
       {
         try
@@ -824,7 +811,7 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch (ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
@@ -837,7 +824,7 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
@@ -850,7 +837,7 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(emptySet);
+            recover(stmtFollowers);
     	}
       }
 
