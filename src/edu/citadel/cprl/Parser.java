@@ -82,7 +82,7 @@ public final class Parser
             parseInitialDecls();
             parseSubprogramDecls();
 
-            // match(Symbol.EOF)
+            match(Symbol.EOF);
             // Let's generate a better error message than "Expecting "End-of-File" but ..."
             if (scanner.symbol() != Symbol.EOF)
               {
