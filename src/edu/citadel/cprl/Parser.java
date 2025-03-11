@@ -886,11 +886,7 @@ public final class Parser
     		match(Symbol.semicolon);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-<<<<<<< HEAD
             recover(stmtFollowers);
-=======
-    		recover(stmtFollowers);
->>>>>>> 0c8d67a428e2e918b3dad0b85af713bbc74a7a59
     	}
       }
 
