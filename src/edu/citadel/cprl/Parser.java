@@ -84,12 +84,13 @@ public final class Parser
 
             match(Symbol.EOF);
             // Let's generate a better error message than "Expecting "End-of-File" but ..."
+            /*
             if (scanner.symbol() != Symbol.EOF)
               {
                 var errorMsg = "Expecting \"proc\" or \"fun\" but found \""
                              + scanner.token() + "\" instead.";
                 throw error(errorMsg);
-              }
+              }*/
           }
         catch (ParserException e)
           {
