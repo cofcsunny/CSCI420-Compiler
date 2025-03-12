@@ -48,8 +48,8 @@ public final class Scanner
         //Making the HashMap
         reservedWords = new HashMap<>();
         for(Symbol symbol : Symbol.values()) {
-        	if(CharUtil.isLetter(symbol.toString().charAt(0))) {
-        		reservedWords.put(symbol.toString(), symbol);
+		if(symbol.isReservedWord()) {
+			reservedWords.put(symbol.toString(), symbol);
         	}
         }
         
