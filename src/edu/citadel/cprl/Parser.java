@@ -752,7 +752,16 @@ public final class Parser
 // ...
     	try{
             parseVariable(); 
-            match(Symbol.assign);
+            try {
+		    match(Symbol.assign);
+	    } catch (ParserException e){
+		    if(scanner.symbol() == Symbol.equals){
+			    errorHandler.reportError(e);
+			    matchCurrentSymbol();
+		    } else {
+			    throw e;
+		    }
+	    }
             parseExpression();
             match(Symbol.semicolon);
     	}catch(ParserException e) {
