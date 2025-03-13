@@ -5,7 +5,7 @@ import edu.citadel.common.FatalException;
 
 import edu.citadel.cprl.Scanner;
 import edu.citadel.cprl.IdTable;
-import edu.citadel.cprl.ParserOld;
+import edu.citadel.cprl.Parser;
 
 import java.io.File;
 
@@ -53,7 +53,7 @@ public class TestParser
 
                 var scanner = new Scanner(sourceFile, 4, errorHandler);   // 4 lookahead tokens
                 var idTable = new IdTable();
-                var parser  = new ParserOld(scanner, idTable, errorHandler);
+                var parser  = new Parser(scanner, idTable, errorHandler);
 
                 parser.parseProgram();
 
