@@ -30,7 +30,7 @@ public final class Parser
      * Symbols that can follow a subprogram declaration.
      */
     private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.EOF,
-    		Symbol.rightBrace, Symbol.semicolon);
+    		Symbol.procRW, Symbol.funRW);
 
     /**
      * Symbols that can follow a factor.
@@ -863,7 +863,6 @@ public final class Parser
     private void parseExitStmt() throws IOException
       {
     	try{
-    		System.out.print("Exit");
     		match(Symbol.exitRW);
     		if(scanner.symbol() == Symbol.whenRW) {
     			System.out.print("When");
