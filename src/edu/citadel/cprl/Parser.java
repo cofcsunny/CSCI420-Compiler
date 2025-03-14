@@ -22,9 +22,8 @@ public final class Parser
      * Symbols that can follow a statement.
      */
     private final Set<Symbol> stmtFollowers = EnumSet.of(Symbol.rightBrace,
-    		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma, Symbol.rightParen, 
-    		Symbol.leftParen, Symbol.equals, Symbol.plus, Symbol.minus, Symbol.times, 
-    		Symbol.returnRW, Symbol.identifier, Symbol.exitRW);
+    		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma,
+    		Symbol.returnRW, Symbol.exitRW);
 
     /**
      * Symbols that can follow a subprogram declaration.
@@ -865,7 +864,6 @@ public final class Parser
     	try{
     		match(Symbol.exitRW);
     		if(scanner.symbol() == Symbol.whenRW) {
-    			System.out.print("When");
     			matchCurrentSymbol();
     			parseExpression();
     		}
