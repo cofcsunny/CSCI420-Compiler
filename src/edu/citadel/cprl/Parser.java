@@ -24,13 +24,13 @@ public final class Parser
     private final Set<Symbol> stmtFollowers = EnumSet.of(Symbol.rightBrace,
     		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma, Symbol.rightParen, 
     		Symbol.leftParen, Symbol.equals, Symbol.plus, Symbol.minus, Symbol.times, 
-    		Symbol.returnRW, Symbol.identifier);
+    		Symbol.returnRW, Symbol.identifier, Symbol.exitRW);
 
     /**
      * Symbols that can follow a subprogram declaration.
      */
-    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.semicolon, 
-    		Symbol.rightBrace, Symbol.EOF);
+    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.EOF,
+    		Symbol.rightBrace, Symbol.semicolon);
 
     /**
      * Symbols that can follow a factor.
@@ -279,7 +279,6 @@ public final class Parser
      */
     private void parseCompositeInitializer() throws IOException
       {
-//...
     	try {
     		match(Symbol.leftBrace);
     		parseInitializer();
@@ -331,7 +330,6 @@ public final class Parser
      */
     private void parseArrayTypeDecl() throws IOException
       {
-// ...
     	try{
     		match(Symbol.typeRW);
     		var idToken = scanner.token();
@@ -692,7 +690,7 @@ public final class Parser
 
                 if (idType != null)
                   {
-                    if (idType == IdType.variableId)
+                    if (idType == IdType.variableId) 
                         parseAssignmentStmt();
                     else if (idType == IdType.procedureId)
                         parseProcedureCallStmt();
@@ -712,12 +710,11 @@ public final class Parser
               {
             	switch (scanner.symbol())
                 {
+                case assign -> parseAssignmentStmt();
                 case leftBrace -> parseCompoundStmt();
                 case ifRW      -> parseIfStmt();
                 case whileRW -> parseLoopStmt();
                 case loopRW -> parseLoopStmt();
-                case assign -> parseAssignmentStmt();
-                case leftParen -> parseProcedureCallStmt();
                 case forRW -> parseForLoopStmt();
                 case exitRW -> parseExitStmt();
                 case readRW -> parseReadStmt();
@@ -749,7 +746,6 @@ public final class Parser
      */
     private void parseAssignmentStmt() throws IOException
       {
-// ...
     	try{
             parseVariable(); 
             try {
@@ -776,7 +772,6 @@ public final class Parser
      */
     private void parseCompoundStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.leftBrace);
     		parseStatements();
@@ -793,7 +788,6 @@ public final class Parser
      */
     private void parseIfStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.ifRW);
     		parseExpression();
@@ -815,7 +809,6 @@ public final class Parser
      */
     private void parseLoopStmt() throws IOException
       {
-// ...
     	try {
       		if(scanner.symbol()==Symbol.whileRW) {
       			matchCurrentSymbol();
@@ -869,10 +862,11 @@ public final class Parser
      */
     private void parseExitStmt() throws IOException
       {
-// ...
     	try{
+    		System.out.print("Exit");
     		match(Symbol.exitRW);
     		if(scanner.symbol() == Symbol.whenRW) {
+    			System.out.print("When");
     			matchCurrentSymbol();
     			parseExpression();
     		}
@@ -889,7 +883,6 @@ public final class Parser
      */
     private void parseReadStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.readRW);
     		parseVariable();
@@ -906,7 +899,6 @@ public final class Parser
      */
     private void parseWriteStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.writeRW);
     		parseExpressions();
@@ -959,7 +951,6 @@ public final class Parser
      */
     private void parseProcedureCallStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.identifier);
     		match(Symbol.leftParen);
@@ -978,7 +969,6 @@ public final class Parser
      */
     private void parseReturnStmt() throws IOException
       {
-// ...
     	try {
     		match(Symbol.returnRW);
     		if(scanner.symbol()!=Symbol.semicolon) {
