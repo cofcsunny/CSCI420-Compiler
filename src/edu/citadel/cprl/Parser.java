@@ -21,7 +21,7 @@ public final class Parser
     /**
      * Symbols that can follow a statement.
      */
-    private final Set<Symbol> stmtFollowers = EnumSet.of(Symbol.rightBrace,
+    private final Set<Symbol> stmtFollowers = EnumSet.of(
     		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma,
     		Symbol.returnRW, Symbol.exitRW);
 
