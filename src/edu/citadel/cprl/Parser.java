@@ -15,6 +15,8 @@ public final class Parser
     private Scanner scanner;
     private IdTable idTable;
     private ErrorHandler errorHandler;
+    private LoopContext loopContext = new LoopContext();
+    private SubprogramContext supprogramContext = new SubprogramContext();
 
     private final Set<Symbol> stmtFollowers = EnumSet.of(
     		Symbol.identifier, Symbol.ifRW, Symbol.elseRW,
@@ -63,6 +65,7 @@ public final class Parser
       }
     
 	/**program = initialDecls subprogramDecls.
+	 * 
      *@return The parsed program.  Returns a program with an empty list
      *of initial declarations and an empty list of subprogram
      *declarations if parsing fails.
@@ -71,8 +74,8 @@ public final class Parser
       {
         try
           {
-            parseInitialDecls();
-            parseSubprogramDecls();
+            var initialDecls = parseInitialDecls();
+            var subprogramDecls = parseSubprogramDecls();
             if (scanner.symbol() != Symbol.EOF)
               {
                 var errorMsg = "Expecting \"proc\" or \"fun\" but found \""
@@ -90,12 +93,16 @@ public final class Parser
       }
 
     /**initialDecls = { initialDecl }.
+     * 
      *@return The list of initial declarations.
      */
     private List<InitialDecl> parseInitialDecls() throws IOException
       {
+    	var initialDecls = new ArrayList<InitialDecl>(10);
+    	
         while (scanner.symbol().isInitialDeclStarter())
         	parseInitialDecl();
+        
         return initialDecls;
       }
 
@@ -125,6 +132,7 @@ public final class Parser
 
     /**
      *constDecl = "const" constId ":=" [ "-" ] literal ";".
+     *
      *@return The parsed constant declaration.  Returns an
      *empty initial declaration if parsing fails.
      */
@@ -147,80 +155,93 @@ public final class Parser
     	}
       }
 
-     //literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
     /**
+     * literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
      * 
-     * @return
-     * @throws IOException
+     * @return The parsed literal token.  Returns a default token if parsing fails.
      */
     private Token parseLiteral() throws IOException
       {
-        try
-          {
-            if (scanner.symbol().isLiteral())
-                matchCurrentSymbol();
-            else
-                throw error("Invalid literal expression.");
-          }
-        catch (ParserException e)
-          {
-            errorHandler.reportError(e);
-            recover(factorFollowers);
-          }
+    	try
+        {
+          if (scanner.symbol().isLiteral())
+            {
+              var literal = scanner.token();
+              matchCurrentSymbol();
+              return literal;
+            }
+          else
+              throw error("Invalid literal expression.");
+        }
+      catch (ParserException e)
+        {
+          errorHandler.reportError(e);
+          recover(factorFollowers);
+          return new Token();
+        }
       }
 
-    /**
+    /**varDecl = "var" identifiers ":" 
+     * 			( typeName | arrayTypeConstr | stringTypeConstr)
+     *          [ ":=" initializer] ";".
      * 
-     * @return
-     * @throws IOException
+     * @return The parsed variable declaration.  Returns an
+     *         empty initial declaration if parsing fails.
      */
     private InitialDecl parseVarDecl() throws IOException
       {
-        try
-          {
-            match(Symbol.varRW);
-            var identifiers = parseIdentifiers();
-            match(Symbol.colon);
+    	try
+        {
+          match(Symbol.varRW);
+          var identifiers = parseIdentifiers();
+          match(Symbol.colon);
 
-            var symbol = scanner.symbol();
-            if (symbol.isPredefinedType() || symbol == Symbol.identifier)
-                parseTypeName();
-            else if (symbol == Symbol.arrayRW)
-                parseArrayTypeConstr();
-            else if (symbol == Symbol.stringRW)
-                 parseStringTypeConstr();
-            else
-              {
-                var errorMsg = "Expecting a type name, reserved word \"array\", "
-                             + "or reserved word \"string\".";
-                throw error(errorMsg);
-              }
+          Type varType;
+          var symbol = scanner.symbol();
+          if (symbol.isPredefinedType() || symbol == Symbol.identifier)
+              varType = parseTypeName();
+          else if (symbol == Symbol.arrayRW)
+              varType = parseArrayTypeConstr();
+          else if (symbol == Symbol.stringRW)
+              varType = parseStringTypeConstr();
+          else
+            {
+              var errorMsg = "Expecting a type name, reserved word \"array\", "
+                           + "or reserved word \"string\".";
+              throw error(errorMsg);
+            }
 
-            if (scanner.symbol() == Symbol.assign)
-              {
-                matchCurrentSymbol();
-                parseInitializer();
-              }
+          Initializer initializer = EmptyInitializer.instance();
+          if (scanner.symbol() == Symbol.assign)
+            {
+              matchCurrentSymbol();
+              initializer = parseInitializer();
+            }
 
-            match(Symbol.semicolon);
+          match(Symbol.semicolon);
 
-            for (Token identifier : identifiers)
-                idTable.add(identifier, IdType.variableId);
-          }
-        catch (ParserException e)
-          {
-            errorHandler.reportError(e);
-            recover(initialDeclFollowers());
-          }
+          var varDecl = new VarDecl(identifiers, varType, initializer,
+                                    idTable.scopeLevel());
+
+          for (SingleVarDecl decl : varDecl.singleVarDecls())
+              idTable.add(decl);
+
+          return varDecl;
+        }
+      catch (ParserException e)
+        {
+          errorHandler.reportError(e);
+          recover(initialDeclFollowers());
+          return EmptyInitialDecl.instance();
+        }
       }
 
-    /**
+    /**identifiers = identifier { "," identifier } .
      * 
-     * @return
-     * @throws IOException
+     * @return The list of identifier tokens.  Returns an empty list if parsing fails.
      */
     private List<Token> parseIdentifiers() throws IOException
-      {
+    {
         try
           {
             var identifiers = new ArrayList<Token>(10);
@@ -246,20 +267,24 @@ public final class Parser
           }
       }
 
-    /**
+    /**initializer = constValue | compositeInitializer .
      * 
-     * @return
-     * @throws IOException
+     * @return The parsed initializer.  Returns an empty
+     *         initializer if parsing fails.
      */
     private Initializer parseInitializer() throws IOException
-      {
+    {
         try
           {
             var symbol = scanner.symbol();
             if (symbol == Symbol.identifier || symbol.isLiteral() || symbol == Symbol.minus)
-                parseConstValue();
+              {
+                var expr = parseConstValue();
+                return expr instanceof ConstValue constValue ? constValue
+                                           : EmptyInitializer.instance();
+              }
             else if (symbol == Symbol.leftBrace)
-                parseCompositeInitializer();
+                return parseCompositeInitializer();
             else
               {
                 var errorMsg = "Expecting literal, identifier, or left brace.";
@@ -270,13 +295,14 @@ public final class Parser
           {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
+            return EmptyInitializer.instance();
           }
       }
 
-    /**
+    /**compositeInitializer = "{" initializer { "," initializer } "}" .
      * 
-     * @return
-     * @throws IOException
+     * @return The parsed composite initializer.  Returns an empty composite
+     *         initializer if parsing fails.
      */
     private CompositeInitializer parseCompositeInitializer() throws IOException
       {
