@@ -5,6 +5,8 @@ import edu.citadel.common.ErrorHandler;
 import edu.citadel.common.ParserException;
 import edu.citadel.common.InternalCompilerException;
 
+import edu.citadel.cprl.ast.*;
+
 import java.io.IOException;
 import java.util.*;
 
