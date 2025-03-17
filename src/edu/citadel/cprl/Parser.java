@@ -8,19 +8,12 @@ import edu.citadel.common.InternalCompilerException;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * This class uses recursive descent to perform syntax analysis of
- * the CPRL source language.
- */
 public final class Parser
   {
     private Scanner scanner;
     private IdTable idTable;
     private ErrorHandler errorHandler;
 
-    /**
-     * Symbols that can follow a statement.
-     */
     private final Set<Symbol> stmtFollowers = EnumSet.of(
     		Symbol.identifier, Symbol.ifRW, Symbol.elseRW,
     		Symbol.whileRW, Symbol.loopRW, Symbol.forRW,
@@ -28,15 +21,9 @@ public final class Parser
     		Symbol.exitRW, Symbol.leftBrace, Symbol.rightBrace,
     		Symbol.returnRW);
 
-    /**
-     * Symbols that can follow a subprogram declaration.
-     */
     private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.EOF,
     		Symbol.procRW, Symbol.funRW);
 
-    /**
-     * Symbols that can follow a factor.
-     */
     private final Set<Symbol> factorFollowers = EnumSet.of(
         Symbol.semicolon,   Symbol.loopRW,      Symbol.thenRW,
         Symbol.rightParen,  Symbol.andRW,       Symbol.orRW,
@@ -48,10 +35,6 @@ public final class Parser
         Symbol.bitwiseXor,  Symbol.leftShift,   Symbol.rightShift,
         Symbol.dotdot);
 
-    /**
-     * Symbols that can follow an initial declaration (computed property).
-     * Set is computed dynamically based on the scope level.
-     */
     private Set<Symbol> initialDeclFollowers()
       {
         // An initial declaration can always be followed by another
@@ -76,43 +59,50 @@ public final class Parser
         this.idTable = idTable;
         this.errorHandler = errorHandler;
       }
-
-     //program = initialDecls subprogramDecls.
-    public void parseProgram() throws IOException
+    
+	/**program = initialDecls subprogramDecls.
+     *@return The parsed program.  Returns a program with an empty list
+     *of initial declarations and an empty list of subprogram
+     *declarations if parsing fails.
+     */
+    public Program parseProgram() throws IOException
       {
         try
           {
             parseInitialDecls();
             parseSubprogramDecls();
-
-            match(Symbol.EOF);
-            /*
             if (scanner.symbol() != Symbol.EOF)
               {
                 var errorMsg = "Expecting \"proc\" or \"fun\" but found \""
                              + scanner.token() + "\" instead.";
                 throw error(errorMsg);
-              }*/
+              }
+            return new Program(initialDecls, subprogDecls);
           }
         catch (ParserException e)
           {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.EOF));
+            return new Program();
           }
       }
 
-    //initialDecls = { initialDecl } .
-    private void parseInitialDecls() throws IOException
+    /**initialDecls = { initialDecl }.
+     *@return The list of initial declarations.
+     */
+    private List<InitialDecl> parseInitialDecls() throws IOException
       {
         while (scanner.symbol().isInitialDeclStarter())
         	parseInitialDecl();
+        return initialDecls;
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>initialDecl = constDecl | varDecl | typeDecl .</code>
+     *initialDecl = constDecl | varDecl | typeDecl.
+     *@return The parsed initial declaration.  Returns an
+     *empty initial declaration if parsing fails.
      */
-    private void parseInitialDecl() throws IOException
+    private InitialDecl parseInitialDecl() throws IOException
       {
     	try {
     		var symbol = scanner.symbol();
@@ -132,10 +122,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>constDecl = "const" constId ":=" [ "-" ] literal ";" .</code>
+     *constDecl = "const" constId ":=" [ "-" ] literal ";".
+     *@return The parsed constant declaration.  Returns an
+     *empty initial declaration if parsing fails.
      */
-    private void parseConstDecl() throws IOException
+    private InitialDecl parseConstDecl() throws IOException
       {
     	try {
     		match(Symbol.constRW);
@@ -155,7 +146,12 @@ public final class Parser
       }
 
      //literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
-    private void parseLiteral() throws IOException
+    /**
+     * 
+     * @return
+     * @throws IOException
+     */
+    private Token parseLiteral() throws IOException
       {
         try
           {
@@ -172,11 +168,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>varDecl = "var" identifiers ":" ( typeName | arrayTypeConstr | stringTypeConstr)
-     *               [ ":=" initializer] ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseVarDecl() throws IOException
+    private InitialDecl parseVarDecl() throws IOException
       {
         try
           {
@@ -217,10 +213,9 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>identifiers = identifier { "," identifier } .</code>
-     *
-     * @return the list of identifier tokens.  Returns an empty list if parsing fails.
+     * 
+     * @return
+     * @throws IOException
      */
     private List<Token> parseIdentifiers() throws IOException
       {
@@ -250,10 +245,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>initializer = constValue | compositeInitializer .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseInitializer() throws IOException
+    private Initializer parseInitializer() throws IOException
       {
         try
           {
@@ -276,10 +272,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>compositeInitializer = "{" initializer { "," initializer } "}" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseCompositeInitializer() throws IOException
+    private CompositeInitializer parseCompositeInitializer() throws IOException
       {
     	try {
     		match(Symbol.leftBrace);
@@ -296,9 +293,11 @@ public final class Parser
       }
 
     /**
-     typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseTypeDecl() throws IOException
+    private InitialDecl parseTypeDecl() throws IOException
       {
         assert scanner.symbol() == Symbol.typeRW;
 
@@ -325,11 +324,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>arrayTypeDecl = "type" typeId "=" "array" "[" intConstValue "]"
-     *                       "of" typeName ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseArrayTypeDecl() throws IOException
+    private InitialDecl parseArrayTypeDecl() throws IOException
       {
     	try{
     		match(Symbol.typeRW);
@@ -351,10 +350,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>arrayTypeConstr = "array" "[" intConstValue "]" "of" typeName .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseArrayTypeConstr() throws IOException
+    private ArrayType parseArrayTypeConstr() throws IOException
       {
         try
           {
@@ -373,10 +373,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>recordTypeDecl = "type" typeId "=" "record" "{" fieldDecls "}" ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseRecordTypeDecl() throws IOException
+    private InitialDecl parseRecordTypeDecl() throws IOException
       {
         try
           {
@@ -409,10 +410,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>fieldDecls = { fieldDecl } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseFieldDecls() throws IOException
+    private List<FieldDecl> parseFieldDecls() throws IOException
       {
     	while(scanner.symbol()==Symbol.identifier) {
     		parseFieldDecl();
@@ -420,10 +422,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>fieldDecl = fieldId ":" typeName ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseFieldDecl() throws IOException
+    private FieldDecl parseFieldDecl() throws IOException
       {
     	try {
     		var fieldId = scanner.token();
@@ -439,10 +442,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseStringTypeDecl() throws IOException
+    private InitialDecl parseStringTypeDecl() throws IOException
       {
     	try {
     		match(Symbol.typeRW);
@@ -462,10 +466,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>stringTypeConstr = "string" "[" intConstValue "]" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseStringTypeConstr() throws IOException
+    private StringType parseStringTypeConstr() throws IOException
       {
         try
           {
@@ -482,10 +487,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>typeName = "Integer" | "Boolean" | "Char" | typeId .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseTypeName() throws IOException
+    private Type parseTypeName() throws IOException
       {
         try
           {
@@ -528,10 +534,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>subprogramDecls = { subprogramDecl } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseSubprogramDecls() throws IOException
+    private List<SubprogramDecl> parseSubprogramDecls() throws IOException
       {
     	while(scanner.symbol().isSubprogramDeclStarter()) {
     		parseSubprogramDecl();
@@ -539,10 +546,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>subprogramDecl = procedureDecl | functionDecl .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseSubprogramDecl() throws IOException
+    private SubprogramDecl parseSubprogramDecl() throws IOException
       {
     	try {
     		switch(scanner.symbol()) {
@@ -556,13 +564,13 @@ public final class Parser
     	}
     	
       }
-
+    
     /**
-     * Parse the following grammar rule:<br>
-     * <code>procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
-     *                       "{" initialDecls statements "}" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseProcedureDecl() throws IOException
+    private SubprogramDecl parseProcedureDecl() throws IOException
       {
         try
           {
@@ -599,11 +607,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
-     *                      "{" initialDecls statements "}" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseFunctionDecl() throws IOException
+    private SubprogramDecl parseFunctionDecl() throws IOException
       {
     	try {
     		match(Symbol.funRW);
@@ -630,10 +638,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>parameterDecls = parameterDecl { "," parameterDecl } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseParameterDecls() throws IOException
+    private List<ParameterDecl> parseParameterDecls() throws IOException
       {
     	parseParameterDecl();
 		while(scanner.symbol()==Symbol.comma) {
@@ -643,10 +652,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>parameterDecl = [ "var" ] paramId ":" typeName .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseParameterDecl() throws IOException
+    private ParameterDecl parseParameterDecl() throws IOException
       {
     	try {
     		if(scanner.symbol()==Symbol.varRW) {
@@ -662,10 +672,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>statements = { statement } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseStatements() throws IOException
+    private List<Statement> parseStatements() throws IOException
       {
     	while(scanner.symbol().isStmtStarter()) {
     		parseStatement();
@@ -673,12 +684,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>statement = assignmentStmt | procedureCallStmt | compoundStmt | ifStmt
-     *                 | loopStmt       | forLoopStmt       | exitStmt     | readStmt
-     *                 | writeStmt      | writelnStmt       | returnStmt .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseStatement() throws IOException
+    private Statement parseStatement() throws IOException
       {
         try
           {
@@ -742,10 +752,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>assignmentStmt = variable ":=" expression ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseAssignmentStmt() throws IOException
+    private Statement parseAssignmentStmt() throws IOException
       {
     	try{
             parseVariable(); 
@@ -768,10 +779,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>compoundStmt = "{" statements "}" .<\code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseCompoundStmt() throws IOException
+    private Statement parseCompoundStmt() throws IOException
       {
     	try {
     		match(Symbol.leftBrace);
@@ -784,10 +796,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>ifStmt = "if" booleanExpr "then" statement  [ "else" statement ] .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseIfStmt() throws IOException
+    private Statement parseIfStmt() throws IOException
       {
     	try {
     		match(Symbol.ifRW);
@@ -805,10 +818,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>loopStmt = [ "while" booleanExpr ] "loop" statement .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseLoopStmt() throws IOException
+    private Statement parseLoopStmt() throws IOException
       {
     	try {
       		if(scanner.symbol()==Symbol.whileRW) {
@@ -822,12 +836,13 @@ public final class Parser
             recover(stmtFollowers);
       	}
       }
-
+    
     /**
-     * Parse the following grammar rule:<br>
-     * <code>forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseForLoopStmt() throws IOException
+    private Statement parseForLoopStmt() throws IOException
       {
         try
           {
@@ -858,10 +873,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>exitStmt = "exit" [ "when" booleanExpr ] ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseExitStmt() throws IOException
+    private Statement parseExitStmt() throws IOException
       {
     	try{
     		match(Symbol.exitRW);
@@ -877,10 +893,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>readStmt = "read" variable ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseReadStmt() throws IOException
+    private Statement parseReadStmt() throws IOException
       {
     	try {
     		match(Symbol.readRW);
@@ -893,10 +910,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>writeStmt = "write" expressions ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseWriteStmt() throws IOException
+    private Statement parseWriteStmt() throws IOException
       {
     	try {
     		match(Symbol.writeRW);
@@ -909,10 +927,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>expressions = expression { "," expression } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseExpressions() throws IOException
+    private List<Expression> parseExpressions() throws IOException
       {
     	parseExpression();
 		while(scanner.symbol()==Symbol.comma) {
@@ -922,10 +941,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>writelnStmt = "writeln" [ expressions ] ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseWritelnStmt() throws IOException
+    private Statement parseWritelnStmt() throws IOException
       {
         try
           {
@@ -944,11 +964,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>procedureCallStmt = procId "(" [ actualParameters ] ")" ";" .
-     *       actualParameters = expressions .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseProcedureCallStmt() throws IOException
+    private Statement parseProcedureCallStmt() throws IOException
       {
     	try {
     		match(Symbol.identifier);
@@ -963,10 +983,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>returnStmt = "return" [ expression ] ";" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseReturnStmt() throws IOException
+    private Statement parseReturnStmt() throws IOException
       {
     	try {
     		match(Symbol.returnRW);
@@ -981,20 +1002,12 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rules:<br>
-     * <code>variable = ( varId | paramId ) { indexExpr | fieldExpr } .<br>
-     *       indexExpr = "[" expression "]" .<br>
-     *       fieldExpr = "." fieldId .</code>
-     * <br>
-     * This helper method provides common logic for methods parseVariable() and
-     * parseVariableExpr().  The method does not handle any ParserExceptions but
-     * throws them back to the calling method where they can be handled appropriately.
-     *
-     * @throws ParserException if parsing fails.
-     * @see #parseVariable()
-     * @see #parseVariableExpr()
+     * 
+     * @return
+     * @throws IOException
+     * @throws ParserException
      */
-    private void parseVariableCommon() throws IOException, ParserException
+    private Variable parseVariableCommon() throws IOException, ParserException
       {
         var idToken = scanner.token();
         match(Symbol.identifier);
@@ -1031,10 +1044,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>variable = ( varId | paramId ) { indexExpr | fieldExpr } .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseVariable() throws IOException
+    private Variable parseVariable() throws IOException
       {
         try
           {
@@ -1048,11 +1062,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rules:<br>
-     * <code>expression = relation { logicalOp relation } .<br>
-     *        logicalOp = "and" | "or" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseExpression() throws IOException
+    private Expression parseExpression() throws IOException
       {
         parseRelation();
 
@@ -1064,11 +1078,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rules:<br>
-     * <code>relation = simpleExpr [ relationalOp simpleExpr ] .<br>
-     *   relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseRelation() throws IOException
+    private Expression parseRelation() throws IOException
       {
     	parseSimpleExpr();
     	if(scanner.symbol().isRelationalOperator()) {
@@ -1078,12 +1092,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rules:<br>
-     * <code>simpleExpr = [ signOp ] term { addingOp term } .<br>
-     *       signOp = "+" | "-" .<br>
-     *       addingOp = "+" | "-" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseSimpleExpr() throws IOException
+    private Expression parseSimpleExpr() throws IOException
       {
     	if(scanner.symbol().isSignOperator()) {
     		matchCurrentSymbol();
@@ -1096,11 +1109,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rules:<br>
-     * <code>term = factor { multiplyingOp factor } .<br>
-     *       multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseTerm() throws IOException
+    private Expression parseTerm() throws IOException
       {
     	parseFactor();
     	while(scanner.symbol().isMultiplyingOperator()) {
@@ -1110,11 +1123,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>factor = ("not" | "~") factor | literal | constId | variableExpr
-     *              | functionCallExpr | "(" expression ")" .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseFactor() throws IOException
+    private Expression parseFactor() throws IOException
       {
         try
           {
@@ -1194,10 +1207,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>constValue = ( [ "-"] literal | constId ).</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseConstValue() throws IOException
+    private Expression parseConstValue() throws IOException
       {
     	try {
     		if(scanner.symbol()==Symbol.identifier) {
@@ -1222,10 +1236,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>variableExpr = variable .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseVariableExpr() throws IOException
+    private Expression parseVariableExpr() throws IOException
       {
         try
           {
@@ -1239,11 +1254,11 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>functionCallExpr = funcId "(" [ actualParameters ] ")" .
-     *       actualParameters = expressions .</code>
+     * 
+     * @return
+     * @throws IOException
      */
-    private void parseFunctionCallExpr() throws IOException
+    private Expression parseFunctionCallExpr() throws IOException
       {
     	try{
     		match(Symbol.identifier);
@@ -1257,13 +1272,32 @@ public final class Parser
             recover(factorFollowers);
     	}
       }
+    /**
+     * 
+     * @return
+     * @throws IOException
+     */
+    private ConstValue parseIntConstValue() throws IOException
+    {
+      var token = new Token(Symbol.intLiteral, new Position(), "1");
+      var defaultConstValue = new ConstValue(token);
+
+      var intConstValue = parseConstValue();
+
+      if (intConstValue instanceof EmptyExpression)
+          intConstValue = defaultConstValue;   // Error has already been reported.
+      else if (intConstValue.type() != Type.Integer)
+        {
+          var errorMsg = "Constant value should have type Integer.";
+          // no error recovery required here
+          errorHandler.reportError(error(intConstValue.position(), errorMsg));
+          intConstValue = defaultConstValue;
+        }
+
+      return (ConstValue) intConstValue;
+    }
 
     // Utility parsing methods
-
-    /**
-     * Check that the current scanner symbol is the expected symbol.  If it
-     * is, then advance the scanner.  Otherwise, throw a ParserException.
-     */
     private void match(Symbol expectedSymbol) throws IOException, ParserException
       {
         if (scanner.symbol() == expectedSymbol)
@@ -1276,45 +1310,26 @@ public final class Parser
           }
       }
 
-    /**
-     * Advance the scanner.  This method represents an unconditional match
-     * with the current scanner symbol.
-     */
     private void matchCurrentSymbol() throws IOException
       {
         scanner.advance();
       }
 
-    /**
-     * Advance the scanner until the current symbol is one of the
-     * symbols in the specified set of follows.
-     */
     private void recover(Set<Symbol> followers) throws IOException
       {
         scanner.advanceTo(followers);
       }
 
-    /**
-     * Create a parser exception with the specified error message and
-     * the current scanner position.
-     */
     private ParserException error(String errorMsg)
       {
         return error(scanner.position(), errorMsg);
       }
 
-    /**
-     * Create a parser exception with the specified error position and error message.
-     */
     private ParserException error(Position errorPos, String errorMsg)
       {
         return new ParserException(errorPos, errorMsg);
       }
 
-    /**
-     * Create an internal compiler exception with the specified error
-     * message and the current scanner position.
-     */
     private InternalCompilerException internalError(String errorMsg)
       {
         return new InternalCompilerException(scanner.position(), errorMsg);
