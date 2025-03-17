@@ -1,6 +1,7 @@
 package edu.citadel.cprl;
 
 import edu.citadel.common.ParserException;
+import edu.citadel.cprl.ast.Declaration;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -11,14 +12,17 @@ import java.util.ArrayList;
  */
 public final class IdTable
   {
-    // IdTable is implemented as a stack of scopes. Opening a scope
-    // pushes a new scope onto the stack. Searching for an identifier
+    // IdTable is implemented as a stack of scopes.  Opening a scope
+    // pushes a new scope onto the stack.  Searching for an identifier
     // involves searching at the current level (top scope in the stack)
     // and then at enclosing scopes (scopes under the top).
 
     private static final int INITIAL_SCOPE_LEVELS = 3;
 
-    private List<Scope> table = new ArrayList<>(INITIAL_SCOPE_LEVELS);
+    private List<Scope> table = new ArrayList<Scope>(INITIAL_SCOPE_LEVELS);
+
+    // The current level of scope.  The current level is incremented every time
+    // a new scope is opened and decremented every time a scope is closed.
     private int currentLevel = 0;
 
     /**
@@ -56,21 +60,23 @@ public final class IdTable
       }
 
     /**
-     * Add an identifier and its type to the current scope.
+     * Add a declaration to the current scope.
      *
-     * @throws ParserException if the identifier already exists
-     *         in the current scope.
+     * @throws ParserException if the name in the declaration already
+     *                         exists in the current scope.
      */
-    public void add(Token idToken, IdType idType) throws ParserException
+    public void add(Declaration decl) throws ParserException
       {
+        var idToken = decl.idToken();
+
         // assumes that idToken is an identifier token
         assert idToken.symbol() == Symbol.identifier :
-            "IdTable.add(): The token is not an identifier.";
+            "IdTable.add(): The token in the declaration is not an identifier.";
 
         var scope   = table.get(currentLevel);
-        var oldDecl = scope.put(idToken.text(), idType);
+        var oldDecl = scope.put(idToken.text(), decl);
 
-        // check that the identifier has not been defined previously
+        // check that the identifier has not been declared previously
         if (oldDecl != null)
           {
             var errorMsg = "Identifier \"" + idToken.text()
@@ -80,22 +86,22 @@ public final class IdTable
       }
 
     /**
-     * Returns the identifier type associated with the identifier name
+     * Returns the declaration associated with the identifier name
      * (type String).  Returns null if the identifier is not found.
      * Searches enclosing scopes if necessary.
      */
-    public IdType get(String idStr)
+    public Declaration get(String idStr)
       {
-        IdType idType = null;
-        int    level  = currentLevel;
+        Declaration decl = null;
+        int level = currentLevel;
 
-        while (level >= 0 && idType == null)
+        while (level >= 0 && decl == null)
           {
             var scope = table.get(level);
-            idType = scope.get(idStr);
+            decl = scope.get(idStr);
             --level;
           }
 
-        return idType;
+        return decl;
       }
   }

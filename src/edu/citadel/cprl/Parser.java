@@ -53,7 +53,8 @@ public final class Parser
       {
         // An initial declaration can always be followed by another
         // initial declaration, regardless of the scope level.
-        var followers = EnumSet.of(Symbol.constRW, Symbol.varRW, Symbol.typeRW);
+        var followers = EnumSet.of(Symbol.constRW, Symbol.varRW,
+        		Symbol.typeRW);
 
         if (idTable.scopeLevel() == ScopeLevel.GLOBAL)
             followers.addAll(EnumSet.of(Symbol.procRW, Symbol.funRW));
@@ -82,7 +83,6 @@ public final class Parser
             parseSubprogramDecls();
 
             match(Symbol.EOF);
-            // Let's generate a better error message than "Expecting "End-of-File" but ..."
             /*
             if (scanner.symbol() != Symbol.EOF)
               {
