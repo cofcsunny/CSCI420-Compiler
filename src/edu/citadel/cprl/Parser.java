@@ -105,7 +105,7 @@ public final class Parser
     private void parseInitialDecls() throws IOException
       {
         while (scanner.symbol().isInitialDeclStarter())
-            parseInitialDecl();
+        	parseInitialDecl();
       }
 
     /**
@@ -291,7 +291,7 @@ public final class Parser
     		match(Symbol.rightBrace);
     	}catch(ParserException e) {
     		errorHandler.reportError(e);
-            recover(EnumSet.of(Symbol.rightBrace, Symbol.colon));
+            recover(EnumSet.of(Symbol.comma, Symbol.rightBrace, Symbol.semicolon));
     	}
       }
 
