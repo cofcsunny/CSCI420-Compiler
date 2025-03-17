@@ -296,8 +296,7 @@ public final class Parser
       }
 
     /**
-     * Parse the following grammar rule:<br>
-     * <code>typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl .</code>
+     typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl .</code>
      */
     private void parseTypeDecl() throws IOException
       {
@@ -1249,7 +1248,7 @@ public final class Parser
     	try{
     		match(Symbol.identifier);
     		match(Symbol.leftParen);
-    		if(scanner.symbol()!=Symbol.rightParen) {
+    		if(scanner.symbol().isExprStarter()) {
     			parseExpressions();
     		}
     		match(Symbol.rightParen);
