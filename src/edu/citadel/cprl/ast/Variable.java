@@ -1,15 +1,16 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
 import edu.citadel.common.Position;
+
 import edu.citadel.cprl.ArrayType;
 import edu.citadel.cprl.RecordType;
-import edu.citadel.cprl.ScopeLevel;
 import edu.citadel.cprl.StringType;
+import edu.citadel.cprl.ScopeLevel;
 import edu.citadel.cprl.Type;
+
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a variable, which is any named variable
@@ -161,11 +162,10 @@ public class Variable extends Expression
             emit("LDLADDR " + decl.relAddr());
             emit("LOADW");
           }
-        else if (decl.scopeLevel() == ScopeLevel.GLOBAL) {
-			emit("LDGADDR " + decl.relAddr());
-		} else {
-			emit("LDLADDR " + decl.relAddr());
-		}
+        else if (decl.scopeLevel() == ScopeLevel.GLOBAL)
+            emit("LDGADDR " + decl.relAddr());
+        else
+            emit("LDLADDR " + decl.relAddr());
 
         var type = decl.type();
 

@@ -1,6 +1,9 @@
 package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
+import edu.citadel.common.ConstraintException;
+
+import edu.citadel.cprl.Type;
 
 /**
  * The abstract syntax tree node for a loop statement.

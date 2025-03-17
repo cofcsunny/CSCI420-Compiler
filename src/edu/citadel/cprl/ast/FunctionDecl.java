@@ -1,9 +1,12 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
+import edu.citadel.common.ConstraintException;
+
+import edu.citadel.cprl.ArrayType;
 import edu.citadel.cprl.Token;
+
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a function declaration.
@@ -47,9 +50,8 @@ public class FunctionDecl extends SubprogramDecl
         // Check that we have at least one return statement.
         for (Statement statement : statements)
           {
-            if (hasReturnStmt(statement)) {
-				return true;
-			}
+            if (hasReturnStmt(statement))
+                return true;
           }
 
         return false;

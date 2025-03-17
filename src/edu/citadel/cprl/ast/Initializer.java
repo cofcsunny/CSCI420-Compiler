@@ -1,7 +1,7 @@
 package edu.citadel.cprl.ast;
 
-import edu.citadel.common.CodeGenException;
 import edu.citadel.common.Position;
+import edu.citadel.common.CodeGenException;
 
 /**
  * Interface for a variable initializer, which is either a constant value,
@@ -33,7 +33,7 @@ public sealed interface Initializer
      * Check semantic/contextual constraints.
      */
     public void checkConstraints();
-
+    
     /**
      * Emit object code.
      *

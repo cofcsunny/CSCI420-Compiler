@@ -1,10 +1,11 @@
 package edu.citadel.cprl.ast;
 
+import edu.citadel.cprl.Token;
+
+import edu.citadel.cvm.Constants;
+
 import java.util.Collections;
 import java.util.List;
-
-import edu.citadel.cprl.Token;
-import edu.citadel.cvm.Constants;
 
 /**
  * Base class for CPRL procedures and functions.
@@ -98,9 +99,8 @@ public abstract class SubprogramDecl extends Declaration
       {
         int paramLength = 0;
 
-        for (ParameterDecl decl : paramDecls) {
-			paramLength += decl.size();
-		}
+        for (ParameterDecl decl : paramDecls)
+            paramLength += decl.size();
 
         return paramLength;
       }
@@ -108,17 +108,14 @@ public abstract class SubprogramDecl extends Declaration
     @Override
     public void checkConstraints()
       {
-        for (ParameterDecl paramDecl : paramDecls) {
-			paramDecl.checkConstraints();
-		}
+        for (ParameterDecl paramDecl : paramDecls)
+            paramDecl.checkConstraints();
 
-        for (InitialDecl decl : initialDecls) {
-			decl.checkConstraints();
-		}
+        for (InitialDecl decl : initialDecls)
+            decl.checkConstraints();
 
-        for (Statement statement : statements) {
-			statement.checkConstraints();
-		}
+        for (Statement statement : statements)
+            statement.checkConstraints();
       }
 
     /**

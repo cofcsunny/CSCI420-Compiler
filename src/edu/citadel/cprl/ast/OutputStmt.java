@@ -1,11 +1,12 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
-import edu.citadel.cprl.StringType;
+
 import edu.citadel.cprl.Type;
+import edu.citadel.cprl.StringType;
+
+import java.util.List;
 
 /**
  * This class implements the abstract syntax tree for both write and writeln statements.
@@ -74,19 +75,17 @@ public class OutputStmt extends Statement
 
             var type = expr.type();
 
-            if (type == Type.Integer) {
-				emit("PUTINT");
-			} else if (type == Type.Boolean) {
-				emit("PUTBYTE");
-			} else if (type == Type.Char) {
-				emit("PUTCH");
-			} else {
-				emit("PUTSTR " + ((StringType) type).capacity());
-			}
+            if (type == Type.Integer)
+                emit("PUTINT");
+            else if (type == Type.Boolean)
+                emit("PUTBYTE");
+            else if (type == Type.Char)
+                emit("PUTCH");
+            else   // must be a string type
+                emit("PUTSTR " + ((StringType) type).capacity());
           }
 
-        if (isWriteln) {
-			emit("PUTEOL");
-		}
+        if (isWriteln)
+            emit("PUTEOL");
       }
   }

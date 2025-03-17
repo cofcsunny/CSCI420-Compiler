@@ -1,12 +1,13 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
+
+import edu.citadel.cprl.Token;
 import edu.citadel.cprl.ArrayType;
 import edu.citadel.cprl.StringType;
-import edu.citadel.cprl.Token;
+
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a function call expression.
@@ -47,9 +48,9 @@ public class FunctionCallExpr extends Expression
               {
                 var errorMsg = "Identifier \"" + funId + "\" was not declared as a function.";
                 throw error(funId.position(), errorMsg);
-              } else {
-				funDecl = (FunctionDecl) decl;
-			}
+              }
+            else
+                funDecl = (FunctionDecl) decl;
 
             // at this point funDecl should not be null
             setType(funDecl.type());
@@ -64,9 +65,8 @@ public class FunctionCallExpr extends Expression
               }
 
             // check constraints for each actual parameter
-            for (Expression expr : actualParams) {
-				expr.checkConstraints();
-			}
+            for (Expression expr : actualParams)
+                expr.checkConstraints();
 
             for (int i = 0; i < actualParams.size(); ++i)
               {
@@ -74,9 +74,8 @@ public class FunctionCallExpr extends Expression
                 var paramDecl = paramDecls.get(i);
 
                 // check that parameter types match
-                if (!matchTypes(paramDecl.type(), expr)) {
-					throw error(expr.position(), "Parameter type mismatch.");
-				}
+                if (!matchTypes(paramDecl.type(), expr))
+                    throw error(expr.position(), "Parameter type mismatch.");
 
                 // check that variable expressions are passed for var parameters
                 // (recall that arrays are passed as var parameters; checked in FunctionDecl)
@@ -141,9 +140,8 @@ public class FunctionCallExpr extends Expression
         emit("ALLOC " + funDecl.type().size());
 
         // emit code for actual parameters
-        for (Expression expr : actualParams) {
-			expr.emit();
-		}
+        for (Expression expr : actualParams)
+            expr.emit();
 
         emit("CALL " + funDecl.subprogramLabel());
       }

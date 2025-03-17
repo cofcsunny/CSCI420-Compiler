@@ -1,8 +1,8 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
+
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a compound statement.

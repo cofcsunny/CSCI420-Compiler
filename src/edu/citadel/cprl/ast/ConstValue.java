@@ -3,10 +3,11 @@ package edu.citadel.cprl.ast;
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
 import edu.citadel.common.util.IntUtil;
-import edu.citadel.cprl.StringType;
+
 import edu.citadel.cprl.Symbol;
 import edu.citadel.cprl.Token;
 import edu.citadel.cprl.Type;
+import edu.citadel.cprl.StringType;
 
 /**
  * The abstract syntax tree node for a constant value expression, which is
@@ -68,15 +69,15 @@ public final class ConstValue extends Expression implements Initializer
                 return 1;
               }
           }
-        else if (literal.symbol() == Symbol.trueRW) {
-			return 1;
-		} else if (literal.symbol() == Symbol.charLiteral)
+        else if (literal.symbol() == Symbol.trueRW)
+            return 1;
+        else if (literal.symbol() == Symbol.charLiteral)
           {
             char ch = literal.text().charAt(1);
-            return ch;
-          } else {
-			return 0;
-		}
+            return (int) ch;
+          }
+        else
+            return 0;
       }
 
     @Override
@@ -115,15 +116,15 @@ public final class ConstValue extends Expression implements Initializer
     @Override
     public void emit() throws CodeGenException
       {
-        if (type() == Type.Integer) {
-			emit("LDCINT " + intValue());
-		} else if (type() == Type.Boolean) {
-			emit("LDCB " + intValue());
-		} else if (type() == Type.Char) {
-			emit("LDCCH " + literal.text());
-		} else if (type() instanceof StringType) {
-			emit("LDCSTR " + literal.text());
-		} else
+        if (type() == Type.Integer)
+            emit("LDCINT " + intValue());
+        else if (type() == Type.Boolean)
+            emit("LDCB " + intValue());
+        else if (type() == Type.Char)
+            emit("LDCCH " + literal.text());
+        else if (type() instanceof StringType)
+            emit("LDCSTR " + literal.text());
+        else
           {
             var errorMsg = "Invalid type for constant value.";
             throw new CodeGenException(literal.position(), errorMsg);

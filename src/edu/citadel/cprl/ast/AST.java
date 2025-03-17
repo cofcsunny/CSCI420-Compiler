@@ -1,14 +1,15 @@
 package edu.citadel.cprl.ast;
 
-import java.io.PrintWriter;
-
+import edu.citadel.common.Position;
+import edu.citadel.common.ErrorHandler;
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
-import edu.citadel.common.ErrorHandler;
-import edu.citadel.common.Position;
+
 import edu.citadel.cprl.IdTable;
-import edu.citadel.cprl.StringType;
 import edu.citadel.cprl.Type;
+import edu.citadel.cprl.StringType;
+
+import java.io.PrintWriter;
 
 /**
  * Base class for all abstract syntax tree classes.
@@ -104,13 +105,12 @@ public abstract class AST
      */
     protected boolean matchTypes(Type type, Expression expr)
       {
-        if (type.equals(expr.type())) {
-			return true;
-		} else if (type instanceof StringType t && expr.type() instanceof StringType e) {
-			return (e.capacity() <= t.capacity()) && (expr instanceof ConstValue);
-		} else {
-			return false;
-		}
+        if (type.equals(expr.type()))
+            return true;
+        else if (type instanceof StringType t && expr.type() instanceof StringType e)
+            return (e.capacity() <= t.capacity()) && (expr instanceof ConstValue);
+        else
+            return false;
       }
 
     /**

@@ -3,12 +3,8 @@ package edu.citadel.cprl.ast;
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
 import edu.citadel.common.InternalCompilerException;
-import edu.citadel.cprl.ArrayType;
-import edu.citadel.cprl.RecordType;
-import edu.citadel.cprl.ScopeLevel;
-import edu.citadel.cprl.StringType;
-import edu.citadel.cprl.Token;
-import edu.citadel.cprl.Type;
+
+import edu.citadel.cprl.*;
 
 /**
  * The abstract syntax tree node for a single variable declaration.
@@ -41,8 +37,7 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
      * Returns the size (number of bytes) associated with this single variable
      * declaration, which is simply the number of bytes associated with its type.
      */
-    @Override
-	public int size()
+    public int size()
       {
         return type().size();
       }
@@ -57,8 +52,7 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
      * Sets the relative address for this declaration. <br>
      * Note: This method should be called before calling method relAddr().
      */
-    @Override
-	public void setRelAddr(int relAddr)
+    public void setRelAddr(int relAddr)
       {
         this.relAddr = relAddr;
       }
@@ -67,8 +61,7 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
      * Returns the relative address (offset) associated with this single
      * variable declaration.
      */
-    @Override
-	public int relAddr()
+    public int relAddr()
       {
         return relAddr;
       }
@@ -79,9 +72,8 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
         try
           {
             // check constraints only if initializer is not empty
-            if (!initializer.isEmpty()) {
-				checkInitializer(type(), initializer);
-			}
+            if (!initializer.isEmpty())
+                checkInitializer(type(), initializer);
           }
         catch (ConstraintException e)
           {
@@ -123,9 +115,8 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
                     throw error(initializer.position(), errorMsg);
                   }
 
-                for (Initializer i : initializers) {
-					checkInitializer(arrayType.elementType(), i);
-				}
+                for (Initializer i : initializers)
+                    checkInitializer(arrayType.elementType(), i);
               }
             else
               {
@@ -147,9 +138,8 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
                     throw error(initializer.position(), errorMsg);
                   }
 
-                for (int i = 0; i < initializers.size(); ++i) {
-					checkInitializer(fieldDecls.get(i).type(), initializers.get(i));
-				}
+                for (int i = 0; i < initializers.size(); ++i)
+                    checkInitializer(fieldDecls.get(i).type(), initializers.get(i));
               }
             else
               {
@@ -174,9 +164,8 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
             if (elementType instanceof ArrayType || elementType instanceof RecordType)
               {
                 // each initializer must also be composite
-                for (Initializer i : initializers) {
-					addPadding(elementType, i);
-				}
+                for (Initializer i : initializers)
+                    addPadding(elementType, i);
               }
             else if (elementType instanceof StringType stringType)
               {
@@ -245,11 +234,10 @@ public final class SingleVarDecl extends InitialDecl implements VariableDecl
         if (!initializer.isEmpty())
           {
             // load the address of the variable
-            if (scopeLevel == ScopeLevel.GLOBAL) {
-				emit("LDGADDR " + relAddr);
-			} else {
-				emit("LDLADDR " + relAddr);
-			}
+            if (scopeLevel == ScopeLevel.GLOBAL)
+                emit("LDGADDR " + relAddr);
+            else
+                emit("LDLADDR " + relAddr);
 
             if (initializer instanceof ConstValue constValue)
               {

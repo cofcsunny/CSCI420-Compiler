@@ -1,6 +1,8 @@
 package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
+import edu.citadel.common.ConstraintException;
+
 import edu.citadel.cprl.Token;
 import edu.citadel.cprl.Type;
 
@@ -69,15 +71,13 @@ public class RelationalExpr extends BinaryExpr
       {
         // Relational operators compare integers only, so we need to make sure that
         // we have enough bytes on the stack.  Pad with null bytes if necessary.
-        for (int n = 1; n <= (Type.Integer.size() - leftOperand().type().size()); ++n) {
-			emit("LDCB 0");
-		}
+        for (int n = 1; n <= (Type.Integer.size() - leftOperand().type().size()); ++n)
+            emit("LDCB 0");
 
         leftOperand().emit();
 
-        for (int n = 1; n <= (Type.Integer.size() - rightOperand().type().size()); ++n) {
-			emit("LDCB 0");
-		}
+        for (int n = 1; n <= (Type.Integer.size() - rightOperand().type().size()); ++n)
+            emit("LDCB 0");
 
         rightOperand().emit();
       }

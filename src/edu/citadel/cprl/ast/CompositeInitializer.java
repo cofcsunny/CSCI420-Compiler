@@ -1,10 +1,10 @@
 package edu.citadel.cprl.ast;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import edu.citadel.common.CodeGenException;
 import edu.citadel.common.Position;
+import edu.citadel.common.CodeGenException;
+
+import java.util.List;
+import java.util.LinkedList;
 
 /**
  * An initializer for composite types.  Composite initializers are enclosed
@@ -57,17 +57,15 @@ public final class CompositeInitializer extends AST implements Initializer
     @Override
     public void checkConstraints()
       {
-        for (Initializer initializer : initializers) {
-			initializer.checkConstraints();
-		}
+        for (Initializer initializer : initializers)
+            initializer.checkConstraints();
       }
 
     @Override
     public void emit() throws CodeGenException
       {
-        for (Initializer initializer : initializers) {
-			initializer.emit();
-		}
+        for (Initializer initializer : initializers)
+            initializer.emit();
       }
 
     @Override

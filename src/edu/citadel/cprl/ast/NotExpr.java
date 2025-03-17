@@ -1,6 +1,8 @@
 package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
+import edu.citadel.common.ConstraintException;
+
 import edu.citadel.cprl.Symbol;
 import edu.citadel.cprl.Token;
 import edu.citadel.cprl.Type;
@@ -21,11 +23,10 @@ public class NotExpr extends UnaryExpr
         var symbol = operator.symbol();
         assert symbol == Symbol.notRW || symbol == Symbol.bitwiseNot;
 
-        if (symbol == Symbol.notRW) {
-			setType(Type.Boolean);
-		} else {
-			setType(Type.Integer);
-		}
+        if (symbol == Symbol.notRW)
+            setType(Type.Boolean);
+        else
+            setType(Type.Integer);
       }
 
     @Override

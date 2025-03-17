@@ -1,9 +1,9 @@
 package edu.citadel.cprl.ast;
 
-import java.util.List;
-
 import edu.citadel.cprl.RecordType;
 import edu.citadel.cprl.Token;
+
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a record type declaration.

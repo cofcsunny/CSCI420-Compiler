@@ -1,10 +1,10 @@
 package edu.citadel.cprl.ast;
 
-import java.util.Collections;
-import java.util.List;
-
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The abstract syntax tree node for a CPRL program.
@@ -40,19 +40,17 @@ public class Program extends AST
       {
         try
           {
-            for (InitialDecl decl : initialDecls) {
-				decl.checkConstraints();
-			}
+            for (InitialDecl decl : initialDecls)
+                decl.checkConstraints();
 
-            for (SubprogramDecl decl : subprogramDecls) {
-				decl.checkConstraints();
-			}
+            for (SubprogramDecl decl : subprogramDecls)
+                decl.checkConstraints();
 
             // check procedure main
             var decl = idTable().get("main");
-            if (decl == null) {
-				throw error("Program is missing procedure \"main()\".");
-			} else if (!(decl instanceof ProcedureDecl))
+            if (decl == null)
+                throw error("Program is missing procedure \"main()\".");
+            else if (!(decl instanceof ProcedureDecl))
               {
                 var errorMsg = "Identifier \"main\" was not declared as a procedure.";
                 throw error(decl.position(), errorMsg);
@@ -105,19 +103,16 @@ public class Program extends AST
         setRelativeAddresses();
 
         // no need to emit PROGRAM instruction if varLength == 0
-        if (varLength > 0) {
-			emit("PROGRAM " + varLength);
-		}
+        if (varLength > 0)
+            emit("PROGRAM " + varLength);
 
-        for (InitialDecl decl : initialDecls) {
-			decl.emit();
-		}
+        for (InitialDecl decl : initialDecls)
+            decl.emit();
 
         emit("CALL _main");
         emit("HALT");
 
-        for (SubprogramDecl decl : subprogramDecls) {
-			decl.emit();
-		}
+        for (SubprogramDecl decl : subprogramDecls)
+            decl.emit();
       }
   }

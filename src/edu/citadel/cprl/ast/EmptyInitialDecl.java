@@ -19,7 +19,7 @@ public class EmptyInitialDecl extends InitialDecl
       }
 
     /**
-     * Returns the single instance of this class.
+     * Returns the single instance of this class. 
      */
     public static EmptyInitialDecl instance()
       {

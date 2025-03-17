@@ -2,6 +2,7 @@ package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
+
 import edu.citadel.cprl.Type;
 
 /**
@@ -58,9 +59,8 @@ public class IfStmt extends Statement
           {
             booleanExpr.checkConstraints();
             thenStmt.checkConstraints();
-            if (elseStmt != null) {
-				elseStmt.checkConstraints();
-			}
+            if (elseStmt != null)
+                elseStmt.checkConstraints();
 
             if (booleanExpr.type() != Type.Boolean)
               {
@@ -82,9 +82,8 @@ public class IfStmt extends Statement
         thenStmt.emit();
 
         // if there is an else part, branch to end of if statement
-        if (elseStmt != null) {
-			emit("BR " + L2);
-		}
+        if (elseStmt != null)
+            emit("BR " + L2);
 
         emitLabel(L1);
 

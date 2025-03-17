@@ -1,6 +1,7 @@
 package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
+
 import edu.citadel.cprl.Token;
 
 /**
@@ -25,17 +26,14 @@ public class ProcedureDecl extends SubprogramDecl
         emitLabel(subprogramLabel());
 
         // no need to emit PROC instruction if varLength == 0
-        if (varLength() > 0) {
-			emit("PROC " + varLength());
-		}
+        if (varLength() > 0)
+            emit("PROC " + varLength());
 
-        for (InitialDecl decl : initialDecls()) {
-			decl.emit();
-		}
+        for (InitialDecl decl : initialDecls())
+            decl.emit();
 
-        for (Statement statement : statements()) {
-			statement.emit();
-		}
+        for (Statement statement : statements())
+            statement.emit();
 
         emit("RET " + paramLength());   // required for procedures
       }

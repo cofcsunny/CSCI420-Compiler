@@ -1,8 +1,10 @@
 package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
-import edu.citadel.cprl.StringType;
+import edu.citadel.common.ConstraintException;
+
 import edu.citadel.cprl.Type;
+import edu.citadel.cprl.StringType;
 
 /**
  * The abstract syntax tree node for a read statement.
@@ -31,12 +33,11 @@ public class ReadStmt extends Statement
       {
         variable.emit();
 
-        if (variable.type() instanceof StringType strType) {
-			emit("GETSTR " + strType.capacity());
-		} else if (variable.type() == Type.Integer) {
-			emit("GETINT");
-		} else {
-			emit("GETCH");
-		}
+        if (variable.type() instanceof StringType strType)
+            emit("GETSTR " + strType.capacity());
+        else if (variable.type() == Type.Integer)
+            emit("GETINT");
+        else   // type must be Char
+            emit("GETCH");
       }
   }
