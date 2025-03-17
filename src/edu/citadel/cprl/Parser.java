@@ -22,8 +22,11 @@ public final class Parser
      * Symbols that can follow a statement.
      */
     private final Set<Symbol> stmtFollowers = EnumSet.of(
-    		Symbol.elseRW, Symbol.whileRW, Symbol.EOF, Symbol.comma,
-    		Symbol.returnRW, Symbol.exitRW);
+    		Symbol.identifier, Symbol.ifRW, Symbol.elseRW,
+    		Symbol.whileRW, Symbol.loopRW, Symbol.forRW,
+    		Symbol.readRW, Symbol.writeRW, Symbol.writelnRW,
+    		Symbol.exitRW, Symbol.leftBrace, Symbol.rightBrace,
+    		Symbol.returnRW);
 
     /**
      * Symbols that can follow a subprogram declaration.
