@@ -140,6 +140,14 @@ public final class Parser {
       }
       Token literal = parseLiteral();
       match(Symbol.semicolon);
+      Type constType = switch (literal.symbol()) {
+      case intLiteral -> Type.Integer;
+      case charLiteral -> Type.Char;
+      // case stringLiteral -> uhhhh no clue what to do for this
+      case trueRW, falseRW -> Type.Boolean;
+      default -> Type.UNKNOWN;
+      };
+      
       return new ConstDecl(idToken, Type.none, literal); // temp solution, type is wrong
     } catch (ParserException e) {
       errorHandler.reportError(e);
