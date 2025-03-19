@@ -641,10 +641,13 @@ public final class Parser {
   }
 
   /**
+   * functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
+   * "{" initialDecls statements "}" .
+   * 
    * This is wrong somehow
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed function declaration. Returns an
+   *         empty subprogram declaration if parsing fails.
    */
   private SubprogramDecl parseFunctionDecl() throws IOException {
     try {
@@ -672,9 +675,9 @@ public final class Parser {
   }
 
   /**
+   * parameterDecls = parameterDecl { "," parameterDecl }.
    * 
-   * @return
-   * @throws IOException
+   * @return A list of parameter declarations.
    */
   private List<ParameterDecl> parseParameterDecls() throws IOException {
     parseParameterDecl();
@@ -685,9 +688,9 @@ public final class Parser {
   }
 
   /**
+   * parameterDecl = [ "var" ] paramId ":" typeName.
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed parameter declaration. Returns null if parsing fails.
    */
   private ParameterDecl parseParameterDecl() throws IOException {
     try {
@@ -700,13 +703,14 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
+      return null;
     }
   }
 
   /**
+   * statements = { statement }.
    * 
-   * @return
-   * @throws IOException
+   * @return A list of statements.
    */
   private List<Statement> parseStatements() throws IOException {
     while (scanner.symbol().isStmtStarter()) {
@@ -715,10 +719,13 @@ public final class Parser {
   }
 
   /**
+   * statement = assignmentStmt | procedureCallStmt
+   * | compoundStmt | ifStmt
+   * | loopStmt | forLoopStmt | exitStmt | readStmt
+   * | writeStmt | writelnStmt | returnStmt .
    * PARTIALLY GIVEN
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed statement. Returns an empty statement if parsing fails.
    */
   private Statement parseStatement() throws IOException {
     try {
@@ -773,9 +780,10 @@ public final class Parser {
   }
 
   /**
+   * assignmentStmt = variable ":=" expression ";".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed assignment statement. Returns
+   *         an empty statement if parsing fails.
    */
   private Statement parseAssignmentStmt() throws IOException {
     try {
@@ -799,9 +807,10 @@ public final class Parser {
   }
 
   /**
+   * compoundStmt = "{" statements "}" .
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed compound statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseCompoundStmt() throws IOException {
     try {
@@ -815,10 +824,11 @@ public final class Parser {
   }
 
   /**
+   * ifStmt = "if" booleanExpr "then" statement [ "else" statement ].
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed if statement. Returns an empty statement if parsing fails.
    */
+
   private Statement parseIfStmt() throws IOException {
     try {
       match(Symbol.ifRW);
@@ -836,9 +846,10 @@ public final class Parser {
   }
 
   /**
+   * loopStmt = [ "while" booleanExpr ] "loop" statement.
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed loop statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseLoopStmt() throws IOException {
     try {
@@ -855,8 +866,7 @@ public final class Parser {
   }
 
   /**
-   * Parse the following grammar rule:<br>
-   * <code>forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement .</code>
+   * forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement.
    *
    * GIVEN
    * 
@@ -908,9 +918,10 @@ public final class Parser {
   }
 
   /**
+   * exitStmt = "exit" [ "when" booleanExpr ] ";".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed exit statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseExitStmt() throws IOException {
     try {
@@ -927,9 +938,10 @@ public final class Parser {
   }
 
   /**
+   * readStmt = "read" variable ";" .
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed read statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseReadStmt() throws IOException {
     try {
@@ -943,9 +955,10 @@ public final class Parser {
   }
 
   /**
+   * writeStmt = "write" expressions ";".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed write statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseWriteStmt() throws IOException {
     try {
@@ -959,8 +972,9 @@ public final class Parser {
   }
 
   /**
+   * expressions = expression [ "," expression ] .
    * 
-   * @return
+   * @return A list of expressions.
    * @throws IOException
    */
   private List<Expression> parseExpressions() throws IOException {
@@ -1001,9 +1015,11 @@ public final class Parser {
   }
 
   /**
+   * procedureCallStmt = procId "(" [ actualParameters ] ")" ";".
+   * actualParameters = expressions.
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed procedure call statement. Returns
+   *         an empty statement if parsing fails.
    */
   private Statement parseProcedureCallStmt() throws IOException {
     try {
@@ -1019,9 +1035,10 @@ public final class Parser {
   }
 
   /**
+   * returnStmt = "return" [ expression ] ";".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed return statement. Returns an empty statement if parsing
+   *         fails.
    */
   private Statement parseReturnStmt() throws IOException {
     try {
@@ -1090,10 +1107,11 @@ public final class Parser {
   }
 
   /**
+   * variable = ( varId | paramId ) { indexExpr | fieldExpr }.
+   * 
    * GIVEN
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed variable. Returns null if parsing fails.
    */
   private Variable parseVariable() throws IOException {
     try {
@@ -1106,10 +1124,12 @@ public final class Parser {
   }
 
   /**
+   * expression = relation { logicalOp relation } .
+   * logicalOp = "and" | "or"
+   * 
    * GIVEN
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed expression.
    */
   private Expression parseExpression() throws IOException {
     var expr = parseRelation();
@@ -1124,9 +1144,10 @@ public final class Parser {
   }
 
   /**
+   * relation = simpleExpr [ relationalOp simpleExpr ].
+   * relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed relational expression.
    */
   private Expression parseRelation() throws IOException {
     parseSimpleExpr();
@@ -1137,9 +1158,11 @@ public final class Parser {
   }
 
   /**
+   * simpleExpr = [ signOp ] term { addingOp term }.
+   * signOp = "+" | "-".
+   * addingOp = "+" | "-" | "|" | "^".
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed simple expression.
    */
   private Expression parseSimpleExpr() throws IOException {
     if (scanner.symbol().isSignOperator()) {
@@ -1153,9 +1176,10 @@ public final class Parser {
   }
 
   /**
+   * term = factor { multiplyingOp factor }.
+   * multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed term expression.
    */
   private Expression parseTerm() throws IOException {
     parseFactor();
@@ -1166,10 +1190,13 @@ public final class Parser {
   }
 
   /**
+   * factor = ("not" | "~") factor | literal | constId | variableExpr
+   * | functionCallExpr | "(" expression ")".
+   * 
    * GIVEN
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed factor expression. Returns an empty expression if parsing
+   *         fails.
    */
   private Expression parseFactor() throws IOException {
     try {
@@ -1235,9 +1262,10 @@ public final class Parser {
   }
 
   /**
+   * constValue = ( [ "-" ] literal ) | constId.
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed constant value. Returns
+   *         an empty expression if parsing fails.
    */
   private Expression parseConstValue() throws IOException {
     try {
@@ -1263,10 +1291,12 @@ public final class Parser {
   }
 
   /**
+   * variableExpr = variable.
+   * 
    * GIVEN
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed variable expression. Returns
+   *         an empty expression if parsing fails.
    */
   private Expression parseVariableExpr() throws IOException {
     try {
@@ -1280,9 +1310,11 @@ public final class Parser {
   }
 
   /**
+   * functionCallExpr = funcId "(" [ actualParameters ] ")".
+   * actualParameters = expressions.
    * 
-   * @return
-   * @throws IOException
+   * @return The parsed function call expression. Returns
+   *         an empty expression if parsing fails.
    */
   private Expression parseFunctionCallExpr() throws IOException {
     try {
@@ -1298,11 +1330,11 @@ public final class Parser {
     }
   }
 
+  // Utility parsing methods
+
   /**
-   * GIVEN
-   * 
-   * @return
-   * @throws IOException
+   * Wrapper around method parseConstValue() that always
+   * returns a valid constant integer value.
    */
   private ConstValue parseIntConstValue() throws IOException {
     var token = new Token(Symbol.intLiteral, new Position(), "1");
@@ -1322,7 +1354,6 @@ public final class Parser {
     return (ConstValue) intConstValue;
   }
 
-  // Utility parsing methods
   private void match(Symbol expectedSymbol) throws IOException, ParserException {
     if (scanner.symbol() == expectedSymbol)
       scanner.advance();
