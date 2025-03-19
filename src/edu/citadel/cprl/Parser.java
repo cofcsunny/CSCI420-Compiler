@@ -657,7 +657,7 @@ public final class Parser {
       match(Symbol.leftParen);
       try {
         idTable.openScope(ScopeLevel.LOCAL);
-        idTable.add(funId, IdType.functionId);
+        idTable.add(funId, IdType.functionId);// fix idTable type shit
       } finally {
         idTable.closeScope();
       }
@@ -741,41 +741,48 @@ public final class Parser {
         // Handle identifiers based on how they are declared,
         // or use the lookahead symbol if not declared.
         var idStr = scanner.text();
-        var idType = idTable.get(idStr);
+        var decl = idTable.get(idStr);
 
-        if (idType != null) {
-          if (idType == IdType.variableId)
-            parseAssignmentStmt();
-          else if (idType == IdType.procedureId)
-            parseProcedureCallStmt();
+        if (decl != null) {
+          if (decl instanceof VariableDecl)
+            return parseAssignmentStmt();
+          else if (decl instanceof ProcedureDecl)
+            return parseProcedureCallStmt();
           else
             throw error("Identifier \"" + idStr + "\" cannot start a statement.");
         } else {
-          if (scanner.lookahead(2).symbol() == Symbol.leftParen) {
-            parseProcedureCallStmt();
-          } else {
-            throw error("Identifier \"" + idStr + "\" has not been declared.");
+          switch (scanner.symbol()) {
+            case identifier:
+              return parseAssignmentStmt();
+            case leftBrace:
+              return parseCompoundStmt();
+            case ifRW:
+              return parseIfStmt();
+            case whileRW:
+              return parseLoopStmt();
+            case loopRW:
+              return parseLoopStmt();
+            case forRW:
+              return parseForLoopStmt();
+            case exitRW:
+              return parseExitStmt();
+            case readRW:
+              return parseReadStmt();
+            case writeRW:
+              return parseWriteStmt();
+            case writelnRW:
+              return parseWritelnStmt();
+            case returnRW:
+              return parseReturnStmt();
+            default:
+              throw internalError(scanner.token()
+                  + " cannot start a statement.");
           }
-        }
-      } else {
-        switch (scanner.symbol()) {
-          case assign -> parseAssignmentStmt();
-          case leftBrace -> parseCompoundStmt();
-          case ifRW -> parseIfStmt();
-          case whileRW -> parseLoopStmt();
-          case loopRW -> parseLoopStmt();
-          case forRW -> parseForLoopStmt();
-          case exitRW -> parseExitStmt();
-          case readRW -> parseReadStmt();
-          case writeRW -> parseWriteStmt();
-          case writelnRW -> parseWritelnStmt();
-          case returnRW -> parseReturnStmt();
-          default -> throw internalError(scanner.token()
-              + " cannot start a statement.");
         }
       }
     } catch (ParserException e) {
       errorHandler.reportError(e);
+
       // Error recovery here is complicated for identifiers since they can both
       // start a statement and appear elsewhere in the statement. (Consider,
       // for example, an assignment statement or a procedure call statement.)
@@ -845,7 +852,6 @@ public final class Parser {
 
   private Statement parseIfStmt() throws IOException {
     try {
-      IfStmt ifStmt;
       match(Symbol.ifRW);
       var booleanExpr = parseExpression();
       match(Symbol.thenRW);
@@ -954,14 +960,18 @@ public final class Parser {
   private Statement parseExitStmt() throws IOException {
     try {
       match(Symbol.exitRW);
+      Expression whenExpr = null;
       if (scanner.symbol() == Symbol.whenRW) {
         matchCurrentSymbol();
-        parseExpression();
+        whenExpr = parseExpression();
       }
       match(Symbol.semicolon);
+      var loopStmt = loopContext.loopStmt();
+      return new ExitStmt(whenExpr, loopStmt);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -985,6 +995,8 @@ public final class Parser {
   }
 
   /**
+   * //no clue what I'm returning
+   * 
    * writeStmt = "write" expressions ";".
    * 
    * @return The parsed write statement. Returns an empty statement if parsing
@@ -995,9 +1007,11 @@ public final class Parser {
       match(Symbol.writeRW);
       parseExpressions();
       match(Symbol.semicolon);
+      return null;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -1008,11 +1022,13 @@ public final class Parser {
    * @throws IOException
    */
   private List<Expression> parseExpressions() throws IOException {
-    parseExpression();
+    ArrayList<Expression> expressions = new ArrayList<Expression>(4);
+    expressions.add(parseExpression());
     while (scanner.symbol() == Symbol.comma) {
       matchCurrentSymbol();
-      parseExpression();
+      expressions.add(parseExpression());
     }
+    return expressions;
   }
 
   /**
@@ -1053,14 +1069,17 @@ public final class Parser {
    */
   private Statement parseProcedureCallStmt() throws IOException {
     try {
+      var procId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.leftParen);
-      parseExpressions();
+      var actualParams = parseExpressions();
       match(Symbol.rightParen);
       match(Symbol.semicolon);
+      return new ProcedureCallStmt(procId, actualParams);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -1072,14 +1091,19 @@ public final class Parser {
    */
   private Statement parseReturnStmt() throws IOException {
     try {
+      var returnPosition = scanner.position();
       match(Symbol.returnRW);
+      Expression returnExpr = null;
       if (scanner.symbol() != Symbol.semicolon) {
-        parseExpression();
+        returnExpr = parseExpression();
       }
       match(Symbol.semicolon);
+      var subprogramDecl = subprogramContext.subprogramDecl();
+      return new ReturnStmt(subprogramDecl, returnExpr, returnPosition);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -1180,14 +1204,18 @@ public final class Parser {
    * @return The parsed relational expression.
    */
   private Expression parseRelation() throws IOException {
-    parseSimpleExpr();
     if (scanner.symbol().isRelationalOperator()) {
       matchCurrentSymbol();
       parseSimpleExpr();
+      return null;// fix return
+    } else {
+      return null;// fix return
     }
   }
 
   /**
+   * //some recursive shit goes here
+   * 
    * simpleExpr = [ signOp ] term { addingOp term }.
    * signOp = "+" | "-".
    * addingOp = "+" | "-" | "|" | "^".
@@ -1195,6 +1223,8 @@ public final class Parser {
    * @return The parsed simple expression.
    */
   private Expression parseSimpleExpr() throws IOException {
+    var position = scanner.position();
+    AddingExpr simpleExpr;
     if (scanner.symbol().isSignOperator()) {
       matchCurrentSymbol();
     }
@@ -1203,9 +1233,12 @@ public final class Parser {
       matchCurrentSymbol();
       parseTerm();
     }
+    return null;// fix return
   }
 
   /**
+   * //also recursive, but multiplyingexpression
+   * 
    * term = factor { multiplyingOp factor }.
    * multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
    * 
@@ -1217,6 +1250,7 @@ public final class Parser {
       matchCurrentSymbol();
       parseFactor();
     }
+    return null;// fix return
   }
 
   /**
@@ -1301,6 +1335,7 @@ public final class Parser {
     try {
       if (scanner.symbol() == Symbol.identifier) {
         matchCurrentSymbol();
+        // set some const value with the ID
       } else {
         if (scanner.symbol() == Symbol.minus) {
           if (scanner.lookahead(2).symbol() != Symbol.intLiteral) {
@@ -1310,6 +1345,7 @@ public final class Parser {
         }
         parseLiteral();
       }
+      return null;// fix return
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
@@ -1317,6 +1353,7 @@ public final class Parser {
           Symbol.lessOrEqual, Symbol.greaterThan, Symbol.greaterOrEqual, Symbol.plus,
           Symbol.minus, Symbol.times, Symbol.divide,
           Symbol.modRW, Symbol.andRW, Symbol.orRW));
+      return EmptyExpression.instance();
     }
   }
 
@@ -1348,15 +1385,19 @@ public final class Parser {
    */
   private Expression parseFunctionCallExpr() throws IOException {
     try {
+      var funId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.leftParen);
+      var actualParams = new ArrayList<Expression>(4);
       if (scanner.symbol().isExprStarter()) {
-        parseExpressions();
+        actualParams.addAll(parseExpressions());
       }
       match(Symbol.rightParen);
+      return new FunctionCallExpr(funId, actualParams);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(factorFollowers);
+      return EmptyExpression.instance();
     }
   }
 

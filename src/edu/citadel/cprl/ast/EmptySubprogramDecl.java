@@ -8,32 +8,27 @@ import edu.citadel.cprl.Token;
  * returning null when parsing errors are encountered. <br>
  * (implements the singleton pattern)
  */
-public class EmptySubprogramDecl extends SubprogramDecl
-  {
-    private static EmptySubprogramDecl instance = new EmptySubprogramDecl();
+public class EmptySubprogramDecl extends SubprogramDecl {
+  private static EmptySubprogramDecl instance = new EmptySubprogramDecl();
 
-    private EmptySubprogramDecl()
-      {
-        super(new Token());
-      }
-
-    /**
-     * Returns the single instance of this class.
-     */
-    public static EmptySubprogramDecl instance()
-      {
-        return instance;
-      }
-
-    @Override
-    public void checkConstraints()
-      {
-        // nothing to check
-      }
-
-    @Override
-    public void emit()
-      {
-        // nothing to emit
-      }
+  private EmptySubprogramDecl() {
+    super(new Token());
   }
+
+  /**
+   * Returns the single instance of this class.
+   */
+  public static EmptySubprogramDecl instance() {
+    return instance;
+  }
+
+  @Override
+  public void checkConstraints() {
+    // nothing to check
+  }
+
+  @Override
+  public void emit() {
+    // nothing to emit
+  }
+}

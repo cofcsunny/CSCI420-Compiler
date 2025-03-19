@@ -6,29 +6,26 @@ package edu.citadel.cprl.ast;
  * returning null when parsing errors are encountered. <br>
  * (implements the singleton pattern)
  */
-public class EmptyStatement extends Statement
-  {
-    private static EmptyStatement instance = new EmptyStatement();
+public class EmptyStatement extends Statement {
+  private static EmptyStatement instance = new EmptyStatement();
 
-    private EmptyStatement() { }   // private constructor
+  private EmptyStatement() {
+  } // private constructor
 
-    /**
-     * Returns the single instance of this class.
-     */
-    public static EmptyStatement instance()
-      {
-        return instance;
-      }
-
-    @Override
-    public void checkConstraints()
-      {
-        // nothing to check
-      }
-
-    @Override
-    public void emit()
-      {
-        // nothing to emit
-      }
+  /**
+   * Returns the single instance of this class.
+   */
+  public static EmptyStatement instance() {
+    return instance;
   }
+
+  @Override
+  public void checkConstraints() {
+    // nothing to check
+  }
+
+  @Override
+  public void emit() {
+    // nothing to emit
+  }
+}

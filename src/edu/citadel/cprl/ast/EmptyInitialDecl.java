@@ -9,32 +9,27 @@ import edu.citadel.cprl.Type;
  * returning null when parsing errors are encountered. <br>
  * (implements the singleton pattern)
  */
-public class EmptyInitialDecl extends InitialDecl
-  {
-    private static EmptyInitialDecl instance = new EmptyInitialDecl();
+public class EmptyInitialDecl extends InitialDecl {
+  private static EmptyInitialDecl instance = new EmptyInitialDecl();
 
-    private EmptyInitialDecl()
-      {
-        super(new Token(), Type.UNKNOWN);
-      }
-
-    /**
-     * Returns the single instance of this class. 
-     */
-    public static EmptyInitialDecl instance()
-      {
-        return instance;
-      }
-
-    @Override
-    public void checkConstraints()
-      {
-        // nothing to check
-      }
-
-    @Override
-    public void emit()
-      {
-        // nothing to emit
-      }
+  private EmptyInitialDecl() {
+    super(new Token(), Type.UNKNOWN);
   }
+
+  /**
+   * Returns the single instance of this class.
+   */
+  public static EmptyInitialDecl instance() {
+    return instance;
+  }
+
+  @Override
+  public void checkConstraints() {
+    // nothing to check
+  }
+
+  @Override
+  public void emit() {
+    // nothing to emit
+  }
+}
