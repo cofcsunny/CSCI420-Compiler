@@ -599,7 +599,7 @@ public final class Parser {
    * GIVEN
    * 
    * procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
-   * "{" initialDecls statements "}" .
+   * "{" initialDecls statements "}".
    * 
    * @return The parsed procedure declaration. Returns an
    *         empty subprogram declaration if parsing fails.
@@ -642,9 +642,9 @@ public final class Parser {
 
   /**
    * functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
-   * "{" initialDecls statements "}" .
+   * "{" initialDecls statements "}".
    * 
-   * This is wrong somehow
+   * This is wrong somehow, model it @see {@link #parseProcedureDecl()}
    * 
    * @return The parsed function declaration. Returns an
    *         empty subprogram declaration if parsing fails.
@@ -680,11 +680,13 @@ public final class Parser {
    * @return A list of parameter declarations.
    */
   private List<ParameterDecl> parseParameterDecls() throws IOException {
-    parseParameterDecl();
+    ArrayList<ParameterDecl> parameterDecls = new ArrayList<ParameterDecl>(4);
+    parameterDecls.add(parseParameterDecl());
     while (scanner.symbol() == Symbol.comma) {
       matchCurrentSymbol();
-      parseParameterDecl();
+      parameterDecls.add(parseParameterDecl());
     }
+    return parameterDecls;
   }
 
   /**
@@ -694,12 +696,16 @@ public final class Parser {
    */
   private ParameterDecl parseParameterDecl() throws IOException {
     try {
+      boolean isVarParam = false;
       if (scanner.symbol() == Symbol.varRW) {
         matchCurrentSymbol();
+        isVarParam = true;
       }
+      var paramId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.colon);
-      parseTypeName();
+      var type = parseTypeName();
+      return new ParameterDecl(paramId, type, isVarParam);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
@@ -713,9 +719,11 @@ public final class Parser {
    * @return A list of statements.
    */
   private List<Statement> parseStatements() throws IOException {
+    ArrayList<Statement> statements = new ArrayList<Statement>(4);
     while (scanner.symbol().isStmtStarter()) {
-      parseStatement();
+      statements.add(parseStatement());
     }
+    return statements;
   }
 
   /**
@@ -776,6 +784,7 @@ public final class Parser {
       // end of the current statement before performing error recovery.
       scanner.advanceTo(EnumSet.of(Symbol.semicolon, Symbol.rightBrace));
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -787,7 +796,8 @@ public final class Parser {
    */
   private Statement parseAssignmentStmt() throws IOException {
     try {
-      parseVariable();
+      var variable = parseVariable();
+      var assignPosition = scanner.position();
       try {
         match(Symbol.assign);
       } catch (ParserException e) {
@@ -798,11 +808,13 @@ public final class Parser {
           throw e;
         }
       }
-      parseExpression();
+      var expr = parseExpression();
       match(Symbol.semicolon);
+      return new AssignmentStmt(variable, expr, assignPosition);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -815,11 +827,13 @@ public final class Parser {
   private Statement parseCompoundStmt() throws IOException {
     try {
       match(Symbol.leftBrace);
-      parseStatements();
+      var statements = parseStatements();
       match(Symbol.rightBrace);
+      return new CompoundStmt(statements);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -831,37 +845,51 @@ public final class Parser {
 
   private Statement parseIfStmt() throws IOException {
     try {
+      IfStmt ifStmt;
       match(Symbol.ifRW);
-      parseExpression();
+      var booleanExpr = parseExpression();
       match(Symbol.thenRW);
-      parseStatement();
+      var thenStmt = parseStatement();
+      Statement elseStmt;
       if (scanner.symbol() == Symbol.elseRW) {
         matchCurrentSymbol();
-        parseStatement();
+        elseStmt = parseStatement();
+      } else {
+        elseStmt = null;
       }
+      return new IfStmt(booleanExpr, thenStmt, elseStmt);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
   /**
    * loopStmt = [ "while" booleanExpr ] "loop" statement.
    * 
+   * //statement is emptystatement in class def?
+   * //not sure why
+   * 
    * @return The parsed loop statement. Returns an empty statement if parsing
    *         fails.
    */
   private Statement parseLoopStmt() throws IOException {
     try {
+      LoopStmt loopStmt;
       if (scanner.symbol() == Symbol.whileRW) {
         matchCurrentSymbol();
-        parseExpression();
+        loopStmt = new LoopStmt(parseExpression());
+      } else {
+        loopStmt = new LoopStmt();
       }
       match(Symbol.loopRW);
       parseStatement();
+      return loopStmt;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
@@ -946,11 +974,13 @@ public final class Parser {
   private Statement parseReadStmt() throws IOException {
     try {
       match(Symbol.readRW);
-      parseVariable();
+      var variable = parseVariable();
       match(Symbol.semicolon);
+      return new ReadStmt(variable);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+      return EmptyStatement.instance();
     }
   }
 
