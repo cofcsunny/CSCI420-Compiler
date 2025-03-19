@@ -933,8 +933,7 @@ public final class Parser {
       idTable.add(loopSvDecl);
 
       // Create loop variable to add to AST class ForLoopStmt
-      var loopVariable = new Variable(loopSvDecl, loopId.position(),
-          Collections.emptyList());
+      var loopVariable = new Variable(loopSvDecl, loopId.position(),Collections.emptyList());
       match(Symbol.loopRW);
       var forLoopStmt = new ForLoopStmt(loopVariable, rangeStart, rangeEnd);
       loopContext.beginLoop(forLoopStmt);
@@ -995,8 +994,6 @@ public final class Parser {
   }
 
   /**
-   * //no clue what I'm returning
-   * 
    * writeStmt = "write" expressions ";".
    * 
    * @return The parsed write statement. Returns an empty statement if parsing
@@ -1005,9 +1002,12 @@ public final class Parser {
   private Statement parseWriteStmt() throws IOException {
     try {
       match(Symbol.writeRW);
-      parseExpressions();
+      
+      List<Expression> expressions = parseExpressions();
+     
       match(Symbol.semicolon);
-      return null;
+      
+      return new OutputStmt(expressions, false);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
@@ -1076,7 +1076,8 @@ public final class Parser {
       match(Symbol.rightParen);
       match(Symbol.semicolon);
       return new ProcedureCallStmt(procId, actualParams);
-    } catch (ParserException e) {
+      } 
+    catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
       return EmptyStatement.instance();
@@ -1224,7 +1225,7 @@ public final class Parser {
    */
   private Expression parseSimpleExpr() throws IOException {
     var position = scanner.position();
-    AddingExpr simpleExpr;
+    Expression simpleExpr =  parseTerm();
     if (scanner.symbol().isSignOperator()) {
       matchCurrentSymbol();
     }
@@ -1233,7 +1234,7 @@ public final class Parser {
       matchCurrentSymbol();
       parseTerm();
     }
-    return null;// fix return
+    return simpleExpr;// fix return
   }
 
   /**
@@ -1245,12 +1246,14 @@ public final class Parser {
    * @return The parsed term expression.
    */
   private Expression parseTerm() throws IOException {
-    parseFactor();
+    Expression term = parseFactor();
     while (scanner.symbol().isMultiplyingOperator()) {
-      matchCurrentSymbol();
-      parseFactor();
+    	Token operator = scanner.token();
+        matchCurrentSymbol();
+        Expression rightFactor = parseFactor();
+        term = new MultiplyingExpr(term, operator, rightFactor);
     }
-    return null;// fix return
+    return term;// fix return
   }
 
   /**
