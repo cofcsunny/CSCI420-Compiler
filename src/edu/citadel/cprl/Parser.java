@@ -61,6 +61,8 @@ public final class Parser {
   }
 
   /**
+   * GIVEN
+   * 
    * program = initialDecls subprogramDecls.
    * 
    * @return The parsed program. Returns a program with an empty list
@@ -76,15 +78,19 @@ public final class Parser {
             + scanner.token() + "\" instead.";
         throw error(errorMsg);
       }
+
       return new Program(initialDecls, subprogramDecls);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.EOF));
+
       return new Program();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * initialDecls = { initialDecl }.
    * 
    * @return The list of initial declarations.
@@ -119,6 +125,7 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
@@ -143,15 +150,19 @@ public final class Parser {
       var constDecl = new ConstDecl(constId,
           Type.typeOf(literal), literal);
       idTable.add(constDecl);
+
       return constDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
    * 
    * @return The parsed literal token. Returns a default token if parsing fails.
@@ -167,11 +178,14 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(factorFollowers);
+
       return new Token();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * varDecl = "var" identifiers ":"
    * ( typeName | arrayTypeConstr | stringTypeConstr)
    * [ ":=" initializer] ";".
@@ -217,11 +231,14 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * identifiers = identifier { "," identifier } .
    * 
    * @return The list of identifier tokens. Returns an empty list if parsing
@@ -245,11 +262,14 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.colon, Symbol.greaterThan));
+
       return Collections.emptyList();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * initializer = constValue | compositeInitializer .
    * 
    * @return The parsed initializer. Returns an empty
@@ -271,6 +291,7 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitializer.instance();
     }
   }
@@ -283,7 +304,8 @@ public final class Parser {
    */
   private CompositeInitializer parseCompositeInitializer() throws IOException {
     try {
-      var compositeInitializer = new CompositeInitializer(scanner.position());
+      var position = scanner.position();
+      var compositeInitializer = new CompositeInitializer(position);
       match(Symbol.leftBrace);
       compositeInitializer.add(parseInitializer());
       while (scanner.symbol() == Symbol.comma) {
@@ -291,15 +313,19 @@ public final class Parser {
         compositeInitializer.add(parseInitializer());
       }
       match(Symbol.rightBrace);
+
       return compositeInitializer;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.comma, Symbol.rightBrace, Symbol.semicolon));
+
       return new CompositeInitializer(scanner.position());
     }
   }
 
   /**
+   * GIVEN
+   * 
    * typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl.
    * 
    * @return The parsed type declaration. Returns an
@@ -309,28 +335,20 @@ public final class Parser {
     assert scanner.symbol() == Symbol.typeRW;
 
     try {
-      InitialDecl typeDecl;
-      switch (scanner.lookahead(4).symbol()) {
-        case arrayRW:
-          typeDecl = parseArrayTypeDecl();
-          break;
-        case recordRW:
-          typeDecl = parseRecordTypeDecl();
-          break;
-        case stringRW:
-          typeDecl = parseStringTypeDecl();
-          break;
-        default: {
+      return switch (scanner.lookahead(4).symbol()) {
+        case Symbol.arrayRW -> parseArrayTypeDecl();
+        case recordRW -> parseRecordTypeDecl();
+        case stringRW -> parseStringTypeDecl();
+        default -> {
           Position errorPos = scanner.lookahead(4).position();
           throw error(errorPos, "Invalid type declaration.");
         }
-      }
-      ;
-      return typeDecl;
+      };
     } catch (ParserException e) {
       errorHandler.reportError(e);
       matchCurrentSymbol(); // force scanner past "type"
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
@@ -355,15 +373,21 @@ public final class Parser {
       match(Symbol.ofRW);
       var elemType = parseTypeName();
       match(Symbol.semicolon);
-      return new ArrayTypeDecl(typeID, elemType, constValue);
+      var arrayTypeDecl = new ArrayTypeDecl(typeID, elemType, constValue);
+      idTable.add(arrayTypeDecl);
+
+      return arrayTypeDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * arrayTypeConstr = "array" "[" intConstValue "]" "of" typeName.
    * 
    * @return The array type defined by this array type constructor.
@@ -376,15 +400,15 @@ public final class Parser {
       var numElements = parseIntConstValue().intValue();
       match(Symbol.rightBracket);
       match(Symbol.ofRW);
-      var elementType = parseTypeName();
-      return new ArrayType("Temp", numElements, elementType);
-      // temp solution, name is wrong
-      // not sure why ArrayType is "undefined for type Parser"
+      var elemType = parseTypeName();
+      var typeName = "array[" + numElements + "] of " + elemType;
+
+      return new ArrayType(typeName, numElements, elemType);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon));
-      return new ArrayType("temp", 0, Type.none);
-      // unsure about this empty arraytype
+
+      return new ArrayType("_", 0, Type.UNKNOWN);
     }
   }
 
@@ -418,10 +442,12 @@ public final class Parser {
 
       var typeDecl = new RecordTypeDecl(typeId, fieldDecls);
       idTable.add(typeDecl);
+
       return typeDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
@@ -436,6 +462,7 @@ public final class Parser {
     while (scanner.symbol() == Symbol.identifier) {
       fieldDecls.add(parseFieldDecl());
     }
+
     return fieldDecls;
   }
 
@@ -447,22 +474,23 @@ public final class Parser {
   private FieldDecl parseFieldDecl() throws IOException {
     try {
       var fieldId = scanner.token();
-      // idTable.add(fieldId, IdType.fieldId);
-      // still add to IdTable
       match(Symbol.identifier);
       match(Symbol.colon);
-      var type = parseTypeName();
+      var fieldType = parseTypeName();
       match(Symbol.semicolon);
-      return new FieldDecl(fieldId, type);
+      var fieldDecl = new FieldDecl(fieldId, fieldType);
+      idTable.add(fieldDecl);
+
+      return fieldDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.identifier, Symbol.rightBrace));
+
       return null;
     }
   }
 
   /**
-   * GIVEN
    * 
    * stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";".
    * 
@@ -480,17 +508,21 @@ public final class Parser {
       var capacity = parseIntConstValue();
       match(Symbol.rightBracket);
       match(Symbol.semicolon);
-      // idTable.add(idToken, IdType.stringTypeId);
-      // still need to add
-      return new StringTypeDecl(typeId, capacity);
+      var stringTypeDecl = new StringTypeDecl(typeId, capacity);
+      idTable.add(stringTypeDecl);
+
+      return stringTypeDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
+
       return EmptyInitialDecl.instance();
     }
   }
 
   /**
+   * GIVEN
+   * 
    * stringTypeConstr = "string" "[" intConstValue "]" .
    * 
    * @return The string type defined by this string type constructor.
@@ -506,11 +538,14 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon));
+
       return new StringType(0);
     }
   }
 
   /**
+   * GIVEN
+   * 
    * typeName = "Integer" | "Boolean" | "Char" | typeId.
    * 
    * @return The parsed named type. Returns Type.UNKNOWN if parsing fails.
@@ -556,6 +591,7 @@ public final class Parser {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon, Symbol.comma,
           Symbol.rightParen, Symbol.leftBrace));
+
       return Type.UNKNOWN;
     }
   }
@@ -571,6 +607,7 @@ public final class Parser {
     while (scanner.symbol().isSubprogramDeclStarter()) {
       subprogramDecls.add(parseSubprogramDecl());
     }
+
     return subprogramDecls;
   }
 
@@ -582,17 +619,16 @@ public final class Parser {
    */
   private SubprogramDecl parseSubprogramDecl() throws IOException {
     try {
-      switch (scanner.symbol()) {
-        case procRW:
-          return parseProcedureDecl();
-        case funRW:
-          return parseFunctionDecl();
-        default:
+      return switch (scanner.symbol()) {
+        case Symbol.procRW -> parseProcedureDecl();
+        case funRW -> parseFunctionDecl();
+        default ->
           throw error("Invalid subprogram declaration");
-      }
+      };
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(subprogDeclFollowers);
+
       return EmptySubprogramDecl.instance();
     }
 
@@ -635,10 +671,12 @@ public final class Parser {
       }
 
       match(Symbol.rightBrace);
+
       return procDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(subprogDeclFollowers);
+
       return EmptySubprogramDecl.instance();
     }
   }
@@ -681,10 +719,12 @@ public final class Parser {
         idTable.closeScope();
       }
       match(Symbol.rightBrace);
+
       return funcDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(subprogDeclFollowers);
+
       return EmptySubprogramDecl.instance();
     }
   }
@@ -701,6 +741,7 @@ public final class Parser {
       matchCurrentSymbol();
       parameterDecls.add(parseParameterDecl());
     }
+
     return parameterDecls;
   }
 
@@ -719,11 +760,15 @@ public final class Parser {
       var paramId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.colon);
-      var type = parseTypeName();
-      return new ParameterDecl(paramId, type, isVarParam);
+      var paramType = parseTypeName();
+      var parameterDecl = new ParameterDecl(paramId, paramType, isVarParam);
+      idTable.add(parameterDecl);
+
+      return parameterDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
+
       return null;
     }
   }
@@ -738,6 +783,7 @@ public final class Parser {
     while (scanner.symbol().isStmtStarter()) {
       statements.add(parseStatement());
     }
+
     return statements;
   }
 
@@ -803,11 +849,15 @@ public final class Parser {
       // end of the current statement before performing error recovery.
       scanner.advanceTo(EnumSet.of(Symbol.semicolon, Symbol.rightBrace));
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
 
   /**
+   * 
+   * //perhaps needs to check idTable, not sure yet, @TODO
+   * 
    * assignmentStmt = variable ":=" expression ";".
    * 
    * @return The parsed assignment statement. Returns
@@ -829,10 +879,13 @@ public final class Parser {
       }
       var expr = parseExpression();
       match(Symbol.semicolon);
-      return new AssignmentStmt(variable, expr, assignPosition);
+      var assignmentStmt = new AssignmentStmt(variable, expr, assignPosition);
+
+      return assignmentStmt;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -848,10 +901,12 @@ public final class Parser {
       match(Symbol.leftBrace);
       var statements = parseStatements();
       match(Symbol.rightBrace);
+
       return new CompoundStmt(statements);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -867,17 +922,17 @@ public final class Parser {
       var booleanExpr = parseExpression();
       match(Symbol.thenRW);
       var thenStmt = parseStatement();
-      Statement elseStmt;
+      Statement elseStmt = null;
       if (scanner.symbol() == Symbol.elseRW) {
         matchCurrentSymbol();
         elseStmt = parseStatement();
-      } else {
-        elseStmt = null;
       }
+
       return new IfStmt(booleanExpr, thenStmt, elseStmt);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -885,15 +940,12 @@ public final class Parser {
   /**
    * loopStmt = [ "while" booleanExpr ] "loop" statement.
    * 
-   * //statement is emptystatement in class def?
-   * //not sure why
-   * 
    * @return The parsed loop statement. Returns an empty statement if parsing
    *         fails.
    */
   private Statement parseLoopStmt() throws IOException {
     try {
-      var loopStmt = new LoopStmt();
+      LoopStmt loopStmt;
       if (scanner.symbol() == Symbol.whileRW) {
         matchCurrentSymbol();
         loopStmt = new LoopStmt(parseExpression());
@@ -904,18 +956,20 @@ public final class Parser {
       loopContext.beginLoop(loopStmt);
       loopStmt.setStatement(parseStatement());
       loopContext.endLoop();
+
       return loopStmt;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
 
   /**
-   * forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement.
-   *
    * GIVEN
+   * 
+   * forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement.
    * 
    * @return The parsed for-loop statement. Returns an empty statement if parsing
    *         fails.
@@ -957,6 +1011,7 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     } finally {
       idTable.closeScope();
@@ -964,6 +1019,8 @@ public final class Parser {
   }
 
   /**
+   * PARTIALLY BOOK
+   * 
    * exitStmt = "exit" [ "when" booleanExpr ] ";".
    * 
    * @return The parsed exit statement. Returns an empty statement if parsing
@@ -982,10 +1039,12 @@ public final class Parser {
         throw error("Exit statement is not nested within a loop");
       }
       match(Symbol.semicolon);
+
       return new ExitStmt(whenExpr, loopStmt);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -1001,10 +1060,12 @@ public final class Parser {
       match(Symbol.readRW);
       var variable = parseVariable();
       match(Symbol.semicolon);
+
       return new ReadStmt(variable);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -1018,15 +1079,14 @@ public final class Parser {
   private Statement parseWriteStmt() throws IOException {
     try {
       match(Symbol.writeRW);
-
-      List<Expression> expressions = parseExpressions();
-
+      var expressions = parseExpressions();
       match(Symbol.semicolon);
 
       return new OutputStmt(expressions, false);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -1044,14 +1104,14 @@ public final class Parser {
       matchCurrentSymbol();
       expressions.add(parseExpression());
     }
+
     return expressions;
   }
 
   /**
-   * Parse the following grammar rule:<br>
-   * <code>writelnStmt = "writeln" [ expressions ] ";" .</code>
-   *
    * GIVEN
+   * 
+   * writelnStmt = "writeln" [ expressions ] ";".
    * 
    * @return The parsed writeln statement. Returns an empty statement if parsing
    *         fails.
@@ -1091,10 +1151,12 @@ public final class Parser {
       var actualParams = parseExpressions();
       match(Symbol.rightParen);
       match(Symbol.semicolon);
+
       return new ProcedureCallStmt(procId, actualParams);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -1115,10 +1177,12 @@ public final class Parser {
       }
       match(Symbol.semicolon);
       var subprogramDecl = subprogramContext.subprogramDecl();
+
       return new ReturnStmt(subprogramDecl, returnExpr, returnPosition);
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
+
       return EmptyStatement.instance();
     }
   }
@@ -1189,15 +1253,16 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.assign, Symbol.semicolon));
+
       return null;
     }
   }
 
   /**
+   * GIVEN
+   * 
    * expression = relation { logicalOp relation } .
    * logicalOp = "and" | "or"
-   * 
-   * GIVEN
    * 
    * @return The parsed expression.
    */
@@ -1220,17 +1285,18 @@ public final class Parser {
    * @return The parsed relational expression.
    */
   private Expression parseRelation() throws IOException {
-    if (scanner.symbol().isRelationalOperator()) {
+    var relation = parseSimpleExpr();
+    while (scanner.symbol().isRelationalOperator()) {
+      var operator = scanner.token();
       matchCurrentSymbol();
-      parseSimpleExpr();
-      return null;// fix return
-    } else {
-      return null;// fix return
+      var rightOperand = parseSimpleExpr();
+      relation = new RelationalExpr(relation, operator, rightOperand);
     }
+    return relation;
   }
 
   /**
-   * //some recursive shit goes here
+   * //add signop to AST?
    * 
    * simpleExpr = [ signOp ] term { addingOp term }.
    * signOp = "+" | "-".
@@ -1239,16 +1305,17 @@ public final class Parser {
    * @return The parsed simple expression.
    */
   private Expression parseSimpleExpr() throws IOException {
-    Expression simpleExpr = parseTerm();
     if (scanner.symbol().isSignOperator()) {
       matchCurrentSymbol();
     }
-    parseTerm();
+    var simpleExpr = parseTerm();
     while (scanner.symbol().isAddingOperator()) {
+      var operator = scanner.token();
       matchCurrentSymbol();
-      parseTerm();
+      var rightOperand = parseTerm();
+      simpleExpr = new AddingExpr(simpleExpr, operator, rightOperand);
     }
-    return simpleExpr;// fix return
+    return simpleExpr;
   }
 
   /**
@@ -1260,21 +1327,21 @@ public final class Parser {
    * @return The parsed term expression.
    */
   private Expression parseTerm() throws IOException {
-    Expression term = parseFactor();
+    var term = parseFactor();
     while (scanner.symbol().isMultiplyingOperator()) {
-      Token operator = scanner.token();
+      var operator = scanner.token();
       matchCurrentSymbol();
-      Expression rightFactor = parseFactor();
-      term = new MultiplyingExpr(term, operator, rightFactor);
+      var rightOperand = parseFactor();
+      term = new MultiplyingExpr(term, operator, rightOperand);
     }
     return term;// fix return
   }
 
   /**
+   * GIVEN
+   * 
    * factor = ("not" | "~") factor | literal | constId | variableExpr
    * | functionCallExpr | "(" expression ")".
-   * 
-   * GIVEN
    * 
    * @return The parsed factor expression. Returns an empty expression if parsing
    *         fails.
@@ -1343,6 +1410,10 @@ public final class Parser {
   }
 
   /**
+   * perhaps handle the minus sign, @TODO
+   * 
+   * PARTIALLY BOOK
+   * 
    * constValue = ( [ "-" ] literal ) | constId.
    * 
    * @return The parsed constant value. Returns
@@ -1350,19 +1421,20 @@ public final class Parser {
    */
   private Expression parseConstValue() throws IOException {
     try {
+      ConstValue constValue;
       if (scanner.symbol() == Symbol.identifier) {
-        matchCurrentSymbol();
-        // set some const value with the ID
+        var text = scanner.text();
+        var constId = scanner.token();
+        var constdecl = idTable.get(text);
+        constValue = new ConstValue(constId, (ConstDecl) constdecl);
       } else {
-        if (scanner.symbol() == Symbol.minus) {
-          if (scanner.lookahead(2).symbol() != Symbol.intLiteral) {
-            throw error("Invalid constant.");
-          }
-          matchCurrentSymbol();
-        }
-        parseLiteral();
       }
-      return null;// fix return
+      if (scanner.symbol() == Symbol.minus) {
+        matchCurrentSymbol();
+      }
+      var literal = parseLiteral();
+      constValue = new ConstValue(literal);
+      return constValue;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
