@@ -1421,21 +1421,29 @@ public final class Parser {
    */
   private Expression parseConstValue() throws IOException {
     try {
-      ConstValue constValue;
-      if (scanner.symbol() == Symbol.identifier) {
-        var text = scanner.text();
-        var constId = scanner.token();
-        var constdecl = idTable.get(text);
-        constValue = new ConstValue(constId, (ConstDecl) constdecl);
-      } else {
-      }
-      if (scanner.symbol() == Symbol.minus) {
-        matchCurrentSymbol();
-      }
-      var literal = parseLiteral();
-      constValue = new ConstValue(literal);
-      return constValue;
-    } catch (ParserException e) {
+	        if (scanner.symbol() == Symbol.identifier) {
+	            var text = scanner.text();
+	            var constId = scanner.token();
+	            var constdecl = idTable.get(text);
+	            if (constdecl instanceof ConstDecl) {
+	                return new ConstValue(constId, (ConstDecl) constdecl);
+	            } else {
+	                throw error("Identifier \"" + text + "\" is not a constant.");
+	            }
+	        }
+	        boolean isNegative = false;
+	        if (scanner.symbol() == Symbol.minus) {
+	            matchCurrentSymbol();
+	            isNegative = true;
+	        }
+	        var literal = parseLiteral();
+	        var constValue = new ConstValue(literal);
+	        if (isNegative) {
+	            return null;
+	        }
+	        return constValue;
+	    }
+      catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
           Symbol.rightParen, Symbol.equals, Symbol.notEqual, Symbol.lessThan,
