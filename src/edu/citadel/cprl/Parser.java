@@ -132,23 +132,18 @@ public final class Parser {
   private InitialDecl parseConstDecl() throws IOException {
     try {
       match(Symbol.constRW);
-      var idToken = scanner.token();
+      var constId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.assign);
       if (scanner.symbol() == Symbol.minus) {
         matchCurrentSymbol();
       }
-      Token literal = parseLiteral();
+      var literal = parseLiteral();
       match(Symbol.semicolon);
-      Type constType = switch (literal.symbol()) {
-        case intLiteral -> Type.Integer;
-        case charLiteral -> Type.Char;
-        // case stringLiteral -> uhhhh no clue what to do for this
-        case trueRW, falseRW -> Type.Boolean;
-        default -> Type.UNKNOWN;
-      };
-
-      return new ConstDecl(idToken, constType, literal); // temp solution, type is wrong
+      var constDecl = new ConstDecl(constId,
+          Type.typeOf(literal), literal);
+      idTable.add(constDecl);
+      return constDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
@@ -771,36 +766,33 @@ public final class Parser {
           else
             throw error("Identifier \"" + idStr + "\" cannot start a statement.");
         } else {
-          switch (scanner.symbol()) {
-            case identifier:
-              return parseAssignmentStmt();
-            case leftBrace:
-              return parseCompoundStmt();
-            case ifRW:
-              return parseIfStmt();
-            case whileRW:
-              return parseLoopStmt();
-            case loopRW:
-              return parseLoopStmt();
-            case forRW:
-              return parseForLoopStmt();
-            case exitRW:
-              return parseExitStmt();
-            case readRW:
-              return parseReadStmt();
-            case writeRW:
-              return parseWriteStmt();
-            case writelnRW:
-              return parseWritelnStmt();
-            case returnRW:
-              return parseReturnStmt();
-            default:
-              throw internalError(scanner.token()
-                  + " cannot start a statement.");
+          if (scanner.lookahead(2).symbol() == Symbol.leftParen) {
+            return parseProcedureCallStmt();
+          } else {
+            throw error("Identifier \"" + idStr
+                + "\" has not been declared");
           }
         }
+      } else {
+        return switch (scanner.symbol()) {
+          case Symbol.identifier -> parseAssignmentStmt();
+          case Symbol.leftBrace -> parseCompoundStmt();
+          case Symbol.ifRW -> parseIfStmt();
+          case Symbol.whileRW -> parseLoopStmt();
+          case Symbol.loopRW -> parseLoopStmt();
+          case Symbol.forRW -> parseForLoopStmt();
+          case Symbol.exitRW -> parseExitStmt();
+          case Symbol.readRW -> parseReadStmt();
+          case Symbol.writeRW -> parseWriteStmt();
+          case Symbol.writelnRW -> parseWritelnStmt();
+          case Symbol.returnRW -> parseReturnStmt();
+          default -> throw internalError(scanner.token()
+              + " cannot start a statement.");
+        };
       }
-    } catch (ParserException e) {
+    } catch (
+
+    ParserException e) {
       errorHandler.reportError(e);
 
       // Error recovery here is complicated for identifiers since they can both
@@ -869,7 +861,6 @@ public final class Parser {
    * 
    * @return The parsed if statement. Returns an empty statement if parsing fails.
    */
-
   private Statement parseIfStmt() throws IOException {
     try {
       match(Symbol.ifRW);
@@ -902,7 +893,7 @@ public final class Parser {
    */
   private Statement parseLoopStmt() throws IOException {
     try {
-      LoopStmt loopStmt;
+      var loopStmt = new LoopStmt();
       if (scanner.symbol() == Symbol.whileRW) {
         matchCurrentSymbol();
         loopStmt = new LoopStmt(parseExpression());
@@ -910,7 +901,9 @@ public final class Parser {
         loopStmt = new LoopStmt();
       }
       match(Symbol.loopRW);
-      parseStatement();
+      loopContext.beginLoop(loopStmt);
+      loopStmt.setStatement(parseStatement());
+      loopContext.endLoop();
       return loopStmt;
     } catch (ParserException e) {
       errorHandler.reportError(e);
@@ -984,8 +977,11 @@ public final class Parser {
         matchCurrentSymbol();
         whenExpr = parseExpression();
       }
-      match(Symbol.semicolon);
       var loopStmt = loopContext.loopStmt();
+      if (loopStmt == null) {
+        throw error("Exit statement is not nested within a loop");
+      }
+      match(Symbol.semicolon);
       return new ExitStmt(whenExpr, loopStmt);
     } catch (ParserException e) {
       errorHandler.reportError(e);
