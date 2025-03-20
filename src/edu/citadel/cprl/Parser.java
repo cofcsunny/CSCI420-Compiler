@@ -141,14 +141,14 @@ public final class Parser {
       Token literal = parseLiteral();
       match(Symbol.semicolon);
       Type constType = switch (literal.symbol()) {
-      case intLiteral -> Type.Integer;
-      case charLiteral -> Type.Char;
-      // case stringLiteral -> uhhhh no clue what to do for this
-      case trueRW, falseRW -> Type.Boolean;
-      default -> Type.UNKNOWN;
+        case intLiteral -> Type.Integer;
+        case charLiteral -> Type.Char;
+        // case stringLiteral -> uhhhh no clue what to do for this
+        case trueRW, falseRW -> Type.Boolean;
+        default -> Type.UNKNOWN;
       };
-      
-      return new ConstDecl(idToken, Type.none, literal); // temp solution, type is wrong
+
+      return new ConstDecl(idToken, constType, literal); // temp solution, type is wrong
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
@@ -660,25 +660,37 @@ public final class Parser {
   private SubprogramDecl parseFunctionDecl() throws IOException {
     try {
       match(Symbol.funRW);
-      var funId = scanner.token();
+      var funcId = scanner.token();
       match(Symbol.identifier);
+
+      var funcDecl = new FunctionDecl(funcId);
+      idTable.add(funcDecl);
       match(Symbol.leftParen);
+
       try {
         idTable.openScope(ScopeLevel.LOCAL);
-        idTable.add(funId, IdType.functionId);// fix idTable type shit
+
+        if (scanner.symbol().isParameterDeclStarter()) {
+          funcDecl.setParameterDecls(parseParameterDecls());
+        }
+        match(Symbol.rightParen);
+        match(Symbol.colon);
+        funcDecl.setType(parseTypeName());
+        match(Symbol.leftBrace);
+        funcDecl.setInitialDecls(parseInitialDecls());
+        subprogramContext.beginSubprogramDecl(funcDecl);
+        funcDecl.setStatements(parseStatements());
+        subprogramContext.endSubprogramDecl();
+
       } finally {
         idTable.closeScope();
       }
-      parseParameterDecls();
-      match(Symbol.rightParen);
-      match(Symbol.colon);
-      match(Symbol.leftBrace);
-      parseInitialDecls();
-      parseStatements();
       match(Symbol.rightBrace);
+      return funcDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(subprogDeclFollowers);
+      return EmptySubprogramDecl.instance();
     }
   }
 
@@ -941,7 +953,7 @@ public final class Parser {
       idTable.add(loopSvDecl);
 
       // Create loop variable to add to AST class ForLoopStmt
-      var loopVariable = new Variable(loopSvDecl, loopId.position(),Collections.emptyList());
+      var loopVariable = new Variable(loopSvDecl, loopId.position(), Collections.emptyList());
       match(Symbol.loopRW);
       var forLoopStmt = new ForLoopStmt(loopVariable, rangeStart, rangeEnd);
       loopContext.beginLoop(forLoopStmt);
@@ -1010,11 +1022,11 @@ public final class Parser {
   private Statement parseWriteStmt() throws IOException {
     try {
       match(Symbol.writeRW);
-      
+
       List<Expression> expressions = parseExpressions();
-     
+
       match(Symbol.semicolon);
-      
+
       return new OutputStmt(expressions, false);
     } catch (ParserException e) {
       errorHandler.reportError(e);
@@ -1084,8 +1096,7 @@ public final class Parser {
       match(Symbol.rightParen);
       match(Symbol.semicolon);
       return new ProcedureCallStmt(procId, actualParams);
-      } 
-    catch (ParserException e) {
+    } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
       return EmptyStatement.instance();
@@ -1232,8 +1243,7 @@ public final class Parser {
    * @return The parsed simple expression.
    */
   private Expression parseSimpleExpr() throws IOException {
-    var position = scanner.position();
-    Expression simpleExpr =  parseTerm();
+    Expression simpleExpr = parseTerm();
     if (scanner.symbol().isSignOperator()) {
       matchCurrentSymbol();
     }
@@ -1256,10 +1266,10 @@ public final class Parser {
   private Expression parseTerm() throws IOException {
     Expression term = parseFactor();
     while (scanner.symbol().isMultiplyingOperator()) {
-    	Token operator = scanner.token();
-        matchCurrentSymbol();
-        Expression rightFactor = parseFactor();
-        term = new MultiplyingExpr(term, operator, rightFactor);
+      Token operator = scanner.token();
+      matchCurrentSymbol();
+      Expression rightFactor = parseFactor();
+      term = new MultiplyingExpr(term, operator, rightFactor);
     }
     return term;// fix return
   }
