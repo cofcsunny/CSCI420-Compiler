@@ -1345,18 +1345,22 @@ public final class Parser {
    */
   private Expression parseTerm() throws IOException {
     var term = parseFactor();
-    if (scanner.symbol() == Symbol.identifier &&
-        !scanner.symbol().isReservedWord()) {
-      scanner.advance();
-    }
+    /*
+     * if (scanner.symbol() == Symbol.identifier &&
+     * !scanner.symbol().isReservedWord()) {
+     * scanner.advance();
+     * }
+     */
     while (scanner.symbol().isMultiplyingOperator()) {
       var operator = scanner.token();
       matchCurrentSymbol();
       var rightOperand = parseFactor();
-      if (scanner.symbol() == Symbol.identifier &&
-          !scanner.symbol().isReservedWord()) {
-        scanner.advance();
-      }
+      /*
+       * if (scanner.symbol() == Symbol.identifier &&
+       * !scanner.symbol().isReservedWord()) {
+       * scanner.advance();
+       * }
+       */
       term = new MultiplyingExpr(term, operator, rightOperand);
     }
     return term;
@@ -1450,6 +1454,7 @@ public final class Parser {
         var text = scanner.text();
         var constId = scanner.token();
         var constdecl = idTable.get(text);
+        match(Symbol.identifier);
         if (constdecl instanceof ConstDecl) {
           return new ConstValue(constId, (ConstDecl) constdecl);
         } else {
