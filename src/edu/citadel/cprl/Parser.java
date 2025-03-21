@@ -821,7 +821,6 @@ public final class Parser {
         }
       } else {
         return switch (scanner.symbol()) {
-          case Symbol.identifier -> parseAssignmentStmt();
           case Symbol.leftBrace -> parseCompoundStmt();
           case Symbol.ifRW -> parseIfStmt();
           case Symbol.whileRW -> parseLoopStmt();
@@ -832,6 +831,7 @@ public final class Parser {
           case Symbol.writeRW -> parseWriteStmt();
           case Symbol.writelnRW -> parseWritelnStmt();
           case Symbol.returnRW -> parseReturnStmt();
+          case Symbol.identifier -> parseAssignmentStmt();
           default -> throw internalError(scanner.token()
               + " cannot start a statement.");
         };
