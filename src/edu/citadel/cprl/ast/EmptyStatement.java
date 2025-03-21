@@ -7,25 +7,25 @@ package edu.citadel.cprl.ast;
  * (implements the singleton pattern)
  */
 public class EmptyStatement extends Statement {
-  private static EmptyStatement instance = new EmptyStatement();
+    private static EmptyStatement instance = new EmptyStatement();
 
-  private EmptyStatement() {
-  } // private constructor
+    private EmptyStatement() {
+    } // private constructor
 
-  /**
-   * Returns the single instance of this class.
-   */
-  public static EmptyStatement instance() {
-    return instance;
-  }
+    /**
+     * Returns the single instance of this class.
+     */
+    public static EmptyStatement instance() {
+        return instance;
+    }
 
-  @Override
-  public void checkConstraints() {
-    // nothing to check
-  }
+    @Override
+    public void checkConstraints() {
+        // nothing to check
+    }
 
-  @Override
-  public void emit() {
-    // nothing to emit
-  }
+    @Override
+    public void emit() {
+        // nothing to emit
+    }
 }

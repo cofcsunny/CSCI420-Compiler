@@ -9,26 +9,26 @@ import edu.citadel.common.Position;
  * (implements the singleton pattern)
  */
 public class EmptyExpression extends Expression {
-  private static EmptyExpression instance = new EmptyExpression();
+    private static EmptyExpression instance = new EmptyExpression();
 
-  private EmptyExpression() {
-    super(new Position());
-  }
+    private EmptyExpression() {
+        super(new Position());
+    }
 
-  /**
-   * Returns the single instance of this class.
-   */
-  public static EmptyExpression instance() {
-    return instance;
-  }
+    /**
+     * Returns the single instance of this class.
+     */
+    public static EmptyExpression instance() {
+        return instance;
+    }
 
-  @Override
-  public void checkConstraints() {
-    // nothing to check
-  }
+    @Override
+    public void checkConstraints() {
+        // nothing to check
+    }
 
-  @Override
-  public void emit() {
-    // nothing to emit
-  }
+    @Override
+    public void emit() {
+        // nothing to emit
+    }
 }

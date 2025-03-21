@@ -9,26 +9,26 @@ import edu.citadel.cprl.Token;
  * (implements the singleton pattern)
  */
 public class EmptySubprogramDecl extends SubprogramDecl {
-  private static EmptySubprogramDecl instance = new EmptySubprogramDecl();
+    private static EmptySubprogramDecl instance = new EmptySubprogramDecl();
 
-  private EmptySubprogramDecl() {
-    super(new Token());
-  }
+    private EmptySubprogramDecl() {
+        super(new Token());
+    }
 
-  /**
-   * Returns the single instance of this class.
-   */
-  public static EmptySubprogramDecl instance() {
-    return instance;
-  }
+    /**
+     * Returns the single instance of this class.
+     */
+    public static EmptySubprogramDecl instance() {
+        return instance;
+    }
 
-  @Override
-  public void checkConstraints() {
-    // nothing to check
-  }
+    @Override
+    public void checkConstraints() {
+        // nothing to check
+    }
 
-  @Override
-  public void emit() {
-    // nothing to emit
-  }
+    @Override
+    public void emit() {
+        // nothing to emit
+    }
 }

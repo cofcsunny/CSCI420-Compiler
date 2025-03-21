@@ -8,15 +8,14 @@ import edu.citadel.cprl.Type;
 /**
  * The abstract syntax tree node for an if statement.
  */
-public class IfStmt extends Statement
-  {
+public class IfStmt extends Statement {
     private Expression booleanExpr;
-    private Statement  thenStmt;         // statement following "then"
-    private Statement  elseStmt;         // statement following "else"
+    private Statement thenStmt; // statement following "then"
+    private Statement elseStmt; // statement following "else"
 
     // labels used during code generation
-    private String L1 = newLabel();   // label of address at end of then statement
-    private String L2 = newLabel();   // label of address at end of if statement
+    private String L1 = newLabel(); // label of address at end of then statement
+    private String L2 = newLabel(); // label of address at end of if statement
 
     /**
      * Construct an if statement with the specified boolean expression,
@@ -29,54 +28,45 @@ public class IfStmt extends Statement
      * @param elseStmt    The statement to be executed when the boolean
      *                    expression evaluates to false (can be null).
      */
-    public IfStmt(Expression booleanExpr, Statement thenStmt, Statement elseStmt)
-      {
+    public IfStmt(Expression booleanExpr, Statement thenStmt, Statement elseStmt) {
         this.booleanExpr = booleanExpr;
-        this.thenStmt    = thenStmt;
-        this.elseStmt    = elseStmt;
-      }
+        this.thenStmt = thenStmt;
+        this.elseStmt = elseStmt;
+    }
 
     /**
      * Returns the "then" statement for this if statement.
      */
-    public Statement thenStmt()
-      {
+    public Statement thenStmt() {
         return thenStmt;
-      }
+    }
 
     /**
      * Returns the "else" statement for this if statement.
      */
-    public Statement elseStmt()
-      {
+    public Statement elseStmt() {
         return elseStmt;
-      }
+    }
 
     @Override
-    public void checkConstraints()
-      {
-        try
-          {
+    public void checkConstraints() {
+        try {
             booleanExpr.checkConstraints();
             thenStmt.checkConstraints();
             if (elseStmt != null)
                 elseStmt.checkConstraints();
 
-            if (booleanExpr.type() != Type.Boolean)
-              {
+            if (booleanExpr.type() != Type.Boolean) {
                 var errorMsg = "An \"if\" condition should have type Boolean.";
                 throw error(booleanExpr.position(), errorMsg);
-              }
-          }
-        catch (ConstraintException e)
-          {
+            }
+        } catch (ConstraintException e) {
             errorHandler().reportError(e);
-          }
-      }
+        }
+    }
 
     @Override
-    public void emit() throws CodeGenException
-      {
+    public void emit() throws CodeGenException {
         // if expression evaluates to false, branch to L1
         booleanExpr.emitBranch(false, L1);
         thenStmt.emit();
@@ -87,10 +77,9 @@ public class IfStmt extends Statement
 
         emitLabel(L1);
 
-        if (elseStmt != null)
-          {
+        if (elseStmt != null) {
             elseStmt.emit();
             emitLabel(L2);
-          }
-      }
-  }
+        }
+    }
+}

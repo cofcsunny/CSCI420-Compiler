@@ -8,31 +8,27 @@ import edu.citadel.cprl.Token;
 import edu.citadel.cprl.Type;
 
 /**
- * The abstract syntax tree node for a multiplying expression.  A multiplying
+ * The abstract syntax tree node for a multiplying expression. A multiplying
  * expression is a binary expression where the operator is a multiplying
- * operator such a "*", "/", "mod", "<<",  etc.  A simple example would be "5*x".
+ * operator such a "*", "/", "mod", "<<", etc. A simple example would be "5*x".
  */
-public class MultiplyingExpr extends BinaryExpr
-  {
+public class MultiplyingExpr extends BinaryExpr {
     /**
      * Construct a multiplying expression with the operator and the two operands.
      */
-    public MultiplyingExpr(Expression leftOperand, Token operator, Expression rightOperand)
-      {
+    public MultiplyingExpr(Expression leftOperand, Token operator, Expression rightOperand) {
         super(leftOperand, operator, rightOperand);
         setType(Type.Integer);
         assert operator.symbol().isMultiplyingOperator();
-      }
+    }
 
     @Override
-    public void checkConstraints()
-      {
-// ...
-      }
+    public void checkConstraints() {
+        // ...
+    }
 
     @Override
-    public void emit() throws CodeGenException
-      {
-// ...
-      }
-  }
+    public void emit() throws CodeGenException {
+        // ...
+    }
+}

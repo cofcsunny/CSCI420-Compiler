@@ -11,22 +11,22 @@ import edu.citadel.cprl.Type;
  * The abstract syntax tree node for a constant declaration.
  */
 public class ConstDecl extends InitialDecl {
-  private Token literal;
+    private Token literal;
 
-  /**
-   * Construct a constant declaration with its identifier, type, and literal.
-   */
-  public ConstDecl(Token identifier, Type constType, Token literal) {
-    super(identifier, constType);
-    this.literal = literal;
-  }
+    /**
+     * Construct a constant declaration with its identifier, type, and literal.
+     */
+    public ConstDecl(Token identifier, Type constType, Token literal) {
+        super(identifier, constType);
+        this.literal = literal;
+    }
 
-  public Token literal() {
-    return literal;
-  }
+    public Token literal() {
+        return literal;
+    }
 
-  @Override
-  public void checkConstraints() {
-    // ...
-  }
+    @Override
+    public void checkConstraints() {
+        // ...
+    }
 }

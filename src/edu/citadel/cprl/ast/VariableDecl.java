@@ -7,8 +7,7 @@ import edu.citadel.cprl.Type;
  * Interface for a variable declaration, which can be either a
  * "single" variable declaration or a parameter declaration.
  */
-public sealed interface VariableDecl permits SingleVarDecl, ParameterDecl
-  {
+public sealed interface VariableDecl permits SingleVarDecl, ParameterDecl {
     /**
      * Returns the type of this declaration.
      */
@@ -36,4 +35,4 @@ public sealed interface VariableDecl permits SingleVarDecl, ParameterDecl
      * declared with this declaration.
      */
     public int relAddr();
-  }
+}

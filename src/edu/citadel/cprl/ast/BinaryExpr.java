@@ -3,49 +3,45 @@ package edu.citadel.cprl.ast;
 import edu.citadel.cprl.Token;
 
 /**
- * Base class for all binary expressions.  A binary expression is an expression
- * of the form "expression operator expression".  The first expression is called
+ * Base class for all binary expressions. A binary expression is an expression
+ * of the form "expression operator expression". The first expression is called
  * the left operand, and the second expression is called the right operand.
  */
-public abstract class BinaryExpr extends Expression
-  {
+public abstract class BinaryExpr extends Expression {
     private Expression leftOperand;
-    private Token      operator;
+    private Token operator;
     private Expression rightOperand;
 
     /**
-     * Construct a binary expression with its left operand, operator, and right operand.
+     * Construct a binary expression with its left operand, operator, and right
+     * operand.
      */
-    public BinaryExpr(Expression leftOperand, Token operator, Expression rightOperand)
-      {
+    public BinaryExpr(Expression leftOperand, Token operator, Expression rightOperand) {
         super(operator.position());
 
-        this.leftOperand  = leftOperand;
-        this.operator     = operator;
+        this.leftOperand = leftOperand;
+        this.operator = operator;
         this.rightOperand = rightOperand;
-      }
+    }
 
     /**
      * Returns the left operand of the binary expression.
      */
-    public Expression leftOperand()
-      {
+    public Expression leftOperand() {
         return leftOperand;
-      }
+    }
 
     /**
      * Returns a token representing the operator of the binary expression.
      */
-    public Token operator()
-      {
+    public Token operator() {
         return operator;
-      }
+    }
 
     /**
      * Returns the right operand of the binary expression.
      */
-    public Expression rightOperand()
-      {
+    public Expression rightOperand() {
         return rightOperand;
-      }
-  }
+    }
+}

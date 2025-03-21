@@ -7,70 +7,62 @@ import edu.citadel.cprl.Token;
 import edu.citadel.cprl.Type;
 
 /**
- * The abstract syntax tree node for a relational expression.  A relational
+ * The abstract syntax tree node for a relational expression. A relational
  * expression is a binary expression where the operator is a relational
- * operator such as "&lt;=" or "&gt;".  A simple example would be "x &lt; 5".
+ * operator such as "&lt;=" or "&gt;". A simple example would be "x &lt; 5".
  */
-public class RelationalExpr extends BinaryExpr
-  {
+public class RelationalExpr extends BinaryExpr {
     // labels used during code generation
-    private String L1 = newLabel();   // label at start of right operand
-    private String L2 = newLabel();   // label at end of the relational expression
+    private String L1 = newLabel(); // label at start of right operand
+    private String L2 = newLabel(); // label at end of the relational expression
 
     /**
      * Construct a relational expression with the operator ("=", "&lt;=", etc.)
      * and the two operands.
      */
-    public RelationalExpr(Expression leftOperand, Token operator, Expression rightOperand)
-      {
+    public RelationalExpr(Expression leftOperand, Token operator, Expression rightOperand) {
         super(leftOperand, operator, rightOperand);
         setType(Type.Boolean);
         assert operator.symbol().isRelationalOperator();
-      }
+    }
 
     @Override
-    public void checkConstraints()
-      {
-// ...
-      }
+    public void checkConstraints() {
+        // ...
+    }
 
     @Override
-    public void emit() throws CodeGenException
-      {
+    public void emit() throws CodeGenException {
         emitBranch(false, L1);
-        emit("LDCB " + TRUE);    // push true back on the stack
-        emit("BR " + L2);        // jump over code to emit false
+        emit("LDCB " + TRUE); // push true back on the stack
+        emit("BR " + L2); // jump over code to emit false
         emitLabel(L1);
-        emit("LDCB " + FALSE);   // push false onto the stack
+        emit("LDCB " + FALSE); // push false onto the stack
         emitLabel(L2);
-      }
+    }
 
     @Override
-    public void emitBranch(boolean condition, String label) throws CodeGenException
-      {
+    public void emitBranch(boolean condition, String label) throws CodeGenException {
         emitOperands();
 
-        switch (operator().symbol())
-          {
-            case equals         -> emit(condition ? "BE "  + label : "BNE " + label);
-            case notEqual       -> emit(condition ? "BNE " + label : "BE "  + label);
-            case lessThan       -> emit(condition ? "BL "  + label : "BGE " + label);
-            case lessOrEqual    -> emit(condition ? "BLE " + label : "BG "  + label);
-            case greaterThan    -> emit(condition ? "BG "  + label : "BLE " + label);
-            case greaterOrEqual -> emit(condition ? "BGE " + label : "BL "  + label);
-            default ->
-              {
+        switch (operator().symbol()) {
+            case equals -> emit(condition ? "BE " + label : "BNE " + label);
+            case notEqual -> emit(condition ? "BNE " + label : "BE " + label);
+            case lessThan -> emit(condition ? "BL " + label : "BGE " + label);
+            case lessOrEqual -> emit(condition ? "BLE " + label : "BG " + label);
+            case greaterThan -> emit(condition ? "BG " + label : "BLE " + label);
+            case greaterOrEqual -> emit(condition ? "BGE " + label : "BL " + label);
+            default -> {
                 var position = operator().position();
                 var errorMsg = "Invalid relational operator.";
                 throw new CodeGenException(position, errorMsg);
-              }
-          }
-      }
+            }
+        }
+    }
 
-    private void emitOperands() throws CodeGenException
-      {
+    private void emitOperands() throws CodeGenException {
         // Relational operators compare integers only, so we need to make sure that
-        // we have enough bytes on the stack.  Pad with null bytes if necessary.
+        // we have enough bytes on the stack. Pad with null bytes if necessary.
         for (int n = 1; n <= (Type.Integer.size() - leftOperand().type().size()); ++n)
             emit("LDCB 0");
 
@@ -80,5 +72,5 @@ public class RelationalExpr extends BinaryExpr
             emit("LDCB 0");
 
         rightOperand().emit();
-      }
-  }
+    }
+}
