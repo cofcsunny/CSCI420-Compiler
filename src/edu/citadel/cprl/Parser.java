@@ -865,7 +865,14 @@ public final class Parser {
    */
   private Statement parseAssignmentStmt() throws IOException {
     try {
-      var variable = parseVariable();
+      var identifier = scanner.text();
+      Variable variable = null;
+      if (idTable.get(identifier) != null) {
+        variable = parseVariable();
+      } else {
+        var errorMsg = "Identifier \"" + identifier + "\" has not been declared.";
+        throw error(errorMsg);
+      }
       var assignPosition = scanner.position();
       try {
         match(Symbol.assign);
@@ -1000,7 +1007,8 @@ public final class Parser {
       idTable.add(loopSvDecl);
 
       // Create loop variable to add to AST class ForLoopStmt
-      var loopVariable = new Variable(loopSvDecl, loopId.position(), Collections.emptyList());
+      var loopVariable = new Variable(loopSvDecl, loopId.position(),
+          Collections.emptyList());
       match(Symbol.loopRW);
       var forLoopStmt = new ForLoopStmt(loopVariable, rangeStart, rangeEnd);
       loopContext.beginLoop(forLoopStmt);
@@ -1011,7 +1019,6 @@ public final class Parser {
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(stmtFollowers);
-
       return EmptyStatement.instance();
     } finally {
       idTable.closeScope();
