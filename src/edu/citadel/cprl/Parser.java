@@ -112,16 +112,19 @@ public final class Parser {
    */
   private InitialDecl parseInitialDecl() throws IOException {
     try {
+      idTable.openScope(ScopeLevel.GLOBAL);
+      InitialDecl initialDecl;
       var symbol = scanner.symbol();
       if (symbol == Symbol.constRW) {
-        return parseConstDecl();
+        initialDecl = parseConstDecl();
       } else if (symbol == Symbol.varRW) {
-        return parseVarDecl();
+        initialDecl = parseVarDecl();
       } else if (symbol == Symbol.typeRW) {
-        return parseTypeDecl();
+        initialDecl = parseTypeDecl();
       } else {
         throw error("Invalid initial declaration.");
       }
+      return initialDecl;
     } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(initialDeclFollowers());
@@ -623,12 +626,10 @@ public final class Parser {
         case Symbol.procRW -> parseProcedureDecl();
         case funRW -> parseFunctionDecl();
         default ->
-          throw error("Invalid subprogram declaration");
+          throw internalError("Invalid subprogram declaration");
       };
-    } catch (ParserException e) {
-      errorHandler.reportError(e);
+    } catch (InternalCompilerException e) {
       recover(subprogDeclFollowers);
-
       return EmptySubprogramDecl.instance();
     }
 
@@ -1155,7 +1156,10 @@ public final class Parser {
       var procId = scanner.token();
       match(Symbol.identifier);
       match(Symbol.leftParen);
-      var actualParams = parseExpressions();
+      ArrayList<Expression> actualParams = new ArrayList<Expression>(4);
+      if (scanner.symbol().isExprStarter()) {
+        actualParams.addAll(parseExpressions());
+      }
       match(Symbol.rightParen);
       match(Symbol.semicolon);
 
