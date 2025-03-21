@@ -1345,14 +1345,19 @@ public final class Parser {
    */
   private Expression parseTerm() throws IOException {
     var term = parseFactor();
+    if (scanner.symbol() == Symbol.identifier &&
+        !scanner.symbol().isReservedWord()) {
+      scanner.advance();
+    }
     while (scanner.symbol().isMultiplyingOperator()) {
       var operator = scanner.token();
       matchCurrentSymbol();
       var rightOperand = parseFactor();
+      if (scanner.symbol() == Symbol.identifier &&
+          !scanner.symbol().isReservedWord()) {
+        scanner.advance();
+      }
       term = new MultiplyingExpr(term, operator, rightOperand);
-    }
-    if (scanner.symbol() == Symbol.identifier) {
-      scanner.advance();
     }
     return term;
   }
