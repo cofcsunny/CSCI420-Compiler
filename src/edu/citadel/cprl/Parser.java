@@ -22,7 +22,7 @@ public final class Parser {
       Symbol.whileRW, Symbol.loopRW, Symbol.forRW,
       Symbol.readRW, Symbol.writeRW, Symbol.writelnRW,
       Symbol.exitRW, Symbol.leftBrace, Symbol.rightBrace,
-      Symbol.returnRW);
+      Symbol.returnRW, Symbol.comma, Symbol.EOF);
 
   private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.EOF,
       Symbol.procRW, Symbol.funRW);
@@ -112,7 +112,6 @@ public final class Parser {
    */
   private InitialDecl parseInitialDecl() throws IOException {
     try {
-      idTable.openScope(ScopeLevel.GLOBAL);
       InitialDecl initialDecl;
       var symbol = scanner.symbol();
       if (symbol == Symbol.constRW) {
@@ -632,7 +631,6 @@ public final class Parser {
       recover(subprogDeclFollowers);
       return EmptySubprogramDecl.instance();
     }
-
   }
 
   /**
@@ -856,9 +854,6 @@ public final class Parser {
   }
 
   /**
-   * 
-   * //perhaps needs to check idTable, not sure yet, @TODO
-   * 
    * assignmentStmt = variable ":=" expression ";".
    * 
    * @return The parsed assignment statement. Returns
@@ -866,15 +861,9 @@ public final class Parser {
    */
   private Statement parseAssignmentStmt() throws IOException {
     try {
-      var identifier = scanner.text();
       Variable variable = null;
-      if (idTable.get(identifier) != null) {
-        variable = parseVariable();
-      } else {
-        var errorMsg = "Identifier \"" + identifier + "\" has not been declared.";
-        throw error(errorMsg);
-      }
       var assignPosition = scanner.position();
+      variable = parseVariable();
       try {
         match(Symbol.assign);
       } catch (ParserException e) {
@@ -887,8 +876,8 @@ public final class Parser {
       }
       var expr = parseExpression();
       match(Symbol.semicolon);
-      var assignmentStmt = new AssignmentStmt(variable, expr, assignPosition);
 
+      var assignmentStmt = new AssignmentStmt(variable, expr, assignPosition);
       return assignmentStmt;
     } catch (ParserException e) {
       errorHandler.reportError(e);
@@ -1252,9 +1241,9 @@ public final class Parser {
   }
 
   /**
-   * variable = ( varId | paramId ) { indexExpr | fieldExpr }.
-   * 
    * GIVEN
+   * 
+   * variable = ( varId | paramId ) { indexExpr | fieldExpr }.
    * 
    * @return The parsed variable. Returns null if parsing fails.
    */
@@ -1307,8 +1296,6 @@ public final class Parser {
   }
 
   /**
-   * //add signop to AST?
-   * 
    * simpleExpr = [ signOp ] term { addingOp term }.
    * signOp = "+" | "-".
    * addingOp = "+" | "-" | "|" | "^".
@@ -1341,7 +1328,6 @@ public final class Parser {
   }
 
   /**
-   * 
    * term = factor { multiplyingOp factor }.
    * multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
    * 
@@ -1443,8 +1429,6 @@ public final class Parser {
   }
 
   /**
-   * perhaps handle the minus sign, @TODO
-   * 
    * PARTIALLY BOOK
    * 
    * constValue = ( [ "-" ] literal ) | constId.
@@ -1489,9 +1473,9 @@ public final class Parser {
   }
 
   /**
-   * variableExpr = variable.
-   * 
    * GIVEN
+   * 
+   * variableExpr = variable.
    * 
    * @return The parsed variable expression. Returns
    *         an empty expression if parsing fails.
