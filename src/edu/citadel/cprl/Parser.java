@@ -1421,29 +1421,29 @@ public final class Parser {
    */
   private Expression parseConstValue() throws IOException {
     try {
-	        if (scanner.symbol() == Symbol.identifier) {
-	            var text = scanner.text();
-	            var constId = scanner.token();
-	            var constdecl = idTable.get(text);
-	            if (constdecl instanceof ConstDecl) {
-	                return new ConstValue(constId, (ConstDecl) constdecl);
-	            } else {
-	                throw error("Identifier \"" + text + "\" is not a constant.");
-	            }
-	        }
-	        boolean isNegative = false;
-	        if (scanner.symbol() == Symbol.minus) {
-	            matchCurrentSymbol();
-	            isNegative = true;
-	        }
-	        var literal = parseLiteral();
-	        var constValue = new ConstValue(literal);
-	        if (isNegative) {
-	            return null;
-	        }
-	        return constValue;
-	    }
-      catch (ParserException e) {
+      if (scanner.symbol() == Symbol.identifier) {
+        var text = scanner.text();
+        var constId = scanner.token();
+        var constdecl = idTable.get(text);
+        if (constdecl instanceof ConstDecl) {
+          return new ConstValue(constId, (ConstDecl) constdecl);
+        } else {
+          throw error("Identifier \"" + text + "\" is not a constant.");
+        }
+      } else {
+        Expression constValue;
+        if (scanner.symbol() == Symbol.minus) {
+          var operator = scanner.token();
+          matchCurrentSymbol();
+          var operand = parseConstValue();
+          constValue = new NegationExpr(operator, operand);
+        } else {
+          var literal = parseLiteral();
+          constValue = new ConstValue(literal);
+        }
+        return constValue;
+      }
+    } catch (ParserException e) {
       errorHandler.reportError(e);
       recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
           Symbol.rightParen, Symbol.equals, Symbol.notEqual, Symbol.lessThan,
@@ -1526,8 +1526,10 @@ public final class Parser {
     if (scanner.symbol() == expectedSymbol)
       scanner.advance();
     else {
+      StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+      String callerMethod = stackTraceElements[2].getMethodName();
       var errorMsg = "Expecting \"" + expectedSymbol + "\" but found \""
-          + scanner.token() + "\" instead.";
+          + scanner.token() + "\" instead. @" + callerMethod;
       throw error(errorMsg);
     }
   }
