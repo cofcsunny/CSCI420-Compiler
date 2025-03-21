@@ -1312,21 +1312,31 @@ public final class Parser {
    * @return The parsed simple expression.
    */
   private Expression parseSimpleExpr() throws IOException {
+    Token operator = null;
     if (scanner.symbol().isSignOperator()) {
+      operator = scanner.token();
       matchCurrentSymbol();
     }
-    var simpleExpr = parseTerm();
+    Expression simpleExpr;
+    if (operator != null) {
+      if (operator.symbol() == Symbol.minus) {
+        simpleExpr = new NegationExpr(operator, parseTerm());
+      } else {
+        simpleExpr = parseTerm();
+      }
+    } else {
+      simpleExpr = parseTerm();
+    }
     while (scanner.symbol().isAddingOperator()) {
-      var operator = scanner.token();
+      var subOperator = scanner.token();
       matchCurrentSymbol();
       var rightOperand = parseTerm();
-      simpleExpr = new AddingExpr(simpleExpr, operator, rightOperand);
+      simpleExpr = new AddingExpr(simpleExpr, subOperator, rightOperand);
     }
     return simpleExpr;
   }
 
   /**
-   * //also recursive, but multiplyingexpression
    * 
    * term = factor { multiplyingOp factor }.
    * multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
@@ -1341,7 +1351,10 @@ public final class Parser {
       var rightOperand = parseFactor();
       term = new MultiplyingExpr(term, operator, rightOperand);
     }
-    return term;// fix return
+    if (scanner.symbol() == Symbol.identifier) {
+      scanner.advance();
+    }
+    return term;
   }
 
   /**
