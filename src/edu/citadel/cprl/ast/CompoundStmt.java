@@ -24,7 +24,18 @@ public class CompoundStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-        // ...
+        if(statements.isEmpty()) {
+    		var errorMsg = "this Statement is empty";
+    		 error(errorMsg);
+    	}
+    	for (Statement stmt : statements){
+          if (stmt != null){
+              stmt.checkConstraints();
+            }
+          else{
+              error("Null statement found in compound statement.");
+            }
+        }
     }
 
     @Override
