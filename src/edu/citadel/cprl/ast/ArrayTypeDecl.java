@@ -25,6 +25,7 @@ public class ArrayTypeDecl extends InitialDecl {
         this.numElements = numElements;
     }
 
+    /* @TODO */
     @Override
     public void checkConstraints() {
         // ...

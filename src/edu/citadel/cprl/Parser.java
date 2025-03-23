@@ -50,7 +50,6 @@ public final class Parser {
             followers.addAll(stmtFollowers);
             followers.remove(Symbol.elseRW);
         }
-
         return followers;
     }
 
@@ -61,8 +60,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * program = initialDecls subprogramDecls.
      * 
      * @return The parsed program. Returns a program with an empty list
@@ -83,14 +80,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.EOF));
-
             return new Program();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * initialDecls = { initialDecl }.
      * 
      * @return The list of initial declarations.
@@ -127,7 +121,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
@@ -157,7 +150,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
@@ -180,14 +172,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(factorFollowers);
-
             return new Token();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * varDecl = "var" identifiers ":"
      * ( typeName | arrayTypeConstr | stringTypeConstr)
      * [ ":=" initializer] ";".
@@ -233,14 +222,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * identifiers = identifier { "," identifier } .
      * 
      * @return The list of identifier tokens. Returns an empty list if parsing
@@ -264,14 +250,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.colon, Symbol.greaterThan));
-
             return Collections.emptyList();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * initializer = constValue | compositeInitializer .
      * 
      * @return The parsed initializer. Returns an empty
@@ -293,7 +276,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitializer.instance();
         }
     }
@@ -320,14 +302,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.comma, Symbol.rightBrace, Symbol.semicolon));
-
             return new CompositeInitializer(scanner.position());
         }
     }
 
     /**
-     * GIVEN
-     * 
      * typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl.
      * 
      * @return The parsed type declaration. Returns an
@@ -350,7 +329,6 @@ public final class Parser {
             errorHandler.reportError(e);
             matchCurrentSymbol(); // force scanner past "type"
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
@@ -382,14 +360,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * arrayTypeConstr = "array" "[" intConstValue "]" "of" typeName.
      * 
      * @return The array type defined by this array type constructor.
@@ -409,14 +384,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.semicolon));
-
             return new ArrayType("_", 0, Type.UNKNOWN);
         }
     }
 
     /**
-     * GIVEN
-     * 
      * recordTypeDecl = "type" typeId "=" "record" "{" fieldDecls "}" ";".
      * 
      * @return The parsed record type declaration. Returns
@@ -449,7 +421,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
@@ -487,13 +458,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.identifier, Symbol.rightBrace));
-
             return null;
         }
     }
 
     /**
-     * 
      * stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";".
      * 
      * @return The parsed string type declaration. Returns an
@@ -517,14 +486,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
-
             return EmptyInitialDecl.instance();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * stringTypeConstr = "string" "[" intConstValue "]" .
      * 
      * @return The string type defined by this string type constructor.
@@ -540,14 +506,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.semicolon));
-
             return new StringType(0);
         }
     }
 
     /**
-     * GIVEN
-     * 
      * typeName = "Integer" | "Boolean" | "Char" | typeId.
      * 
      * @return The parsed named type. Returns Type.UNKNOWN if parsing fails.
@@ -593,7 +556,6 @@ public final class Parser {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.semicolon, Symbol.comma,
                     Symbol.rightParen, Symbol.leftBrace));
-
             return Type.UNKNOWN;
         }
     }
@@ -602,14 +564,12 @@ public final class Parser {
      * subprogramDecls = { subprogramDecl }.
      * 
      * @return The list of subprogram declarations.
-     * @throws IOException
      */
     private List<SubprogramDecl> parseSubprogramDecls() throws IOException {
         ArrayList<SubprogramDecl> subprogramDecls = new ArrayList<SubprogramDecl>(4);
         while (scanner.symbol().isSubprogramDeclStarter()) {
             subprogramDecls.add(parseSubprogramDecl());
         }
-
         return subprogramDecls;
     }
 
@@ -634,8 +594,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
      * "{" initialDecls statements "}".
      * 
@@ -675,7 +633,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(subprogDeclFollowers);
-
             return EmptySubprogramDecl.instance();
         }
     }
@@ -683,8 +640,6 @@ public final class Parser {
     /**
      * functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
      * "{" initialDecls statements "}".
-     * 
-     * This is wrong somehow, model it @see {@link #parseProcedureDecl()}
      * 
      * @return The parsed function declaration. Returns an
      *         empty subprogram declaration if parsing fails.
@@ -723,7 +678,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(subprogDeclFollowers);
-
             return EmptySubprogramDecl.instance();
         }
     }
@@ -740,7 +694,6 @@ public final class Parser {
             matchCurrentSymbol();
             parameterDecls.add(parseParameterDecl());
         }
-
         return parameterDecls;
     }
 
@@ -767,7 +720,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
-
             return null;
         }
     }
@@ -791,7 +743,6 @@ public final class Parser {
      * | compoundStmt | ifStmt
      * | loopStmt | forLoopStmt | exitStmt | readStmt
      * | writeStmt | writelnStmt | returnStmt .
-     * PARTIALLY GIVEN
      * 
      * @return The parsed statement. Returns an empty statement if parsing fails.
      */
@@ -882,7 +833,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
@@ -903,7 +853,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
@@ -929,7 +878,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
@@ -953,19 +901,15 @@ public final class Parser {
             loopContext.beginLoop(loopStmt);
             loopStmt.setStatement(parseStatement());
             loopContext.endLoop();
-
             return loopStmt;
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement.
      * 
      * @return The parsed for-loop statement. Returns an empty statement if parsing
@@ -1016,8 +960,6 @@ public final class Parser {
     }
 
     /**
-     * PARTIALLY BOOK
-     * 
      * exitStmt = "exit" [ "when" booleanExpr ] ";".
      * 
      * @return The parsed exit statement. Returns an empty statement if parsing
@@ -1101,13 +1043,10 @@ public final class Parser {
             matchCurrentSymbol();
             expressions.add(parseExpression());
         }
-
         return expressions;
     }
 
     /**
-     * GIVEN
-     * 
      * writelnStmt = "writeln" [ expressions ] ";".
      * 
      * @return The parsed writeln statement. Returns an empty statement if parsing
@@ -1124,7 +1063,6 @@ public final class Parser {
                 expressions = Collections.emptyList();
 
             match(Symbol.semicolon);
-
             return new OutputStmt(expressions, true);
         } catch (ParserException e) {
             errorHandler.reportError(e);
@@ -1156,7 +1094,6 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
@@ -1182,14 +1119,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
         }
     }
 
     /**
-     * GIVEN
-     * 
      * Parse the following grammar rules:<br>
      * <code>variable = ( varId | paramId ) { indexExpr | fieldExpr } .<br>
      *       indexExpr = "[" expression "]" .<br>
@@ -1241,8 +1175,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * variable = ( varId | paramId ) { indexExpr | fieldExpr }.
      * 
      * @return The parsed variable. Returns null if parsing fails.
@@ -1253,14 +1185,11 @@ public final class Parser {
         } catch (ParserException e) {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.assign, Symbol.semicolon));
-
             return null;
         }
     }
 
     /**
-     * GIVEN
-     * 
      * expression = relation { logicalOp relation } .
      * logicalOp = "and" | "or"
      * 
@@ -1274,7 +1203,6 @@ public final class Parser {
             matchCurrentSymbol();
             expr = new LogicalExpr(expr, operator, parseRelation());
         }
-
         return expr;
     }
 
@@ -1357,8 +1285,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * factor = ("not" | "~") factor | literal | constId | variableExpr
      * | functionCallExpr | "(" expression ")".
      * 
@@ -1473,8 +1399,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * variableExpr = variable.
      * 
      * @return The parsed variable expression. Returns
