@@ -24,7 +24,16 @@ public class ExitStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+            if (whenExpr != null &&
+                    whenExpr.type() != Type.Integer) {
+                var errorMsg = "Left operand should have type Integer.";
+                throw error(whenExpr.position(), errorMsg);
+            }
+
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 
     @Override
