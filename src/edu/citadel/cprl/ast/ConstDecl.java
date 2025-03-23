@@ -27,6 +27,18 @@ public class ConstDecl extends InitialDecl {
 
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+            if (literal.symbol() == Symbol.intLiteral) {
+                try {
+                    IntUtil.toInt(literal.text());
+                } catch (NumberFormatException e) {
+                    var errorMsg = "The number \"" + literal.text()
+                            + "\" cannot be converted to an integer in CPRL.";
+                    throw error(literal.position(), errorMsg);
+                }
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 }
