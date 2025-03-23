@@ -36,14 +36,14 @@ public class NotExpr extends UnaryExpr {
     		Symbol b = operator().symbol(); 
     		if(b == Symbol.minus) {
     			if(a != Type.Integer) {
-        			throw new ConstraintException("Operator '-' requires an integer operand." );
+        			throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand." );
         		}
     		} else if(b == Symbol.bitwiseNot) {
     			if(a != Type.Integer) {
-        			throw new ConstraintException("Operator '-' requires an integer operand." );
+        			throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand." );
         		}
     		} else {
-    			throw new ConstraintException("Invalid operator for negation expression.");
+    			throw new ConstraintException(operand().position(), "Invalid operator for negation expression.");
     		}
     	}catch(ConstraintException e) {
     		errorHandler().reportError(e);;
