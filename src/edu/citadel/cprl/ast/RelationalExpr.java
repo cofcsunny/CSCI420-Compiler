@@ -29,6 +29,12 @@ public class RelationalExpr extends BinaryExpr {
     @Override
     public void checkConstraints() {
         // ...
+        leftOperand().checkConstraints();
+    	rightOperand().checkConstraints();
+    	
+    	Type L = leftOperand().type();
+    	Type R = rightOperand().type();
+    	
     }
 
     @Override
