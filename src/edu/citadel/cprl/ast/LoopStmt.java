@@ -53,7 +53,23 @@ public class LoopStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+    		if(whileExpr != null) {
+    			whileExpr.checkConstraints();
+    			
+    			if (!whileExpr.type().equals(Type.Boolean)) {
+                    throw new ConstraintException(whileExpr.position(), 
+                    		"Loop condition must be of type Boolean.");
+                }
+    		}
+    		
+    		if(statement != null) {
+    			statement.checkConstraints();
+    		}
+    	}
+    	catch(ConstraintException e) {
+    		errorHandler().reportError(e);
+    		}
     }
 
     @Override
