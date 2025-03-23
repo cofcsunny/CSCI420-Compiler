@@ -431,11 +431,10 @@ public final class Parser {
      * @return A list of field declarations.
      */
     private List<FieldDecl> parseFieldDecls() throws IOException {
-        ArrayList<FieldDecl> fieldDecls = new ArrayList<FieldDecl>(4);
+        var fieldDecls = new ArrayList<FieldDecl>(4);
         while (scanner.symbol() == Symbol.identifier) {
             fieldDecls.add(parseFieldDecl());
         }
-
         return fieldDecls;
     }
 
@@ -766,7 +765,7 @@ public final class Parser {
                         return parseProcedureCallStmt();
                     } else {
                         throw error("Identifier \"" + idStr
-                                + "\" has not been declared");
+                                + "\" has not been declared.");
                     }
                 }
             } else {
@@ -967,6 +966,7 @@ public final class Parser {
      */
     private Statement parseExitStmt() throws IOException {
         try {
+            var errorPos = scanner.position();
             match(Symbol.exitRW);
             Expression whenExpr = null;
             if (scanner.symbol() == Symbol.whenRW) {
@@ -975,10 +975,10 @@ public final class Parser {
             }
             var loopStmt = loopContext.loopStmt();
             if (loopStmt == null) {
-                throw error("Exit statement is not nested within a loop");
+                var errorMsg = "Exit statement is not nested within a loop";
+                throw error(errorPos, errorMsg);
             }
             match(Symbol.semicolon);
-
             return new ExitStmt(whenExpr, loopStmt);
         } catch (ParserException e) {
             errorHandler.reportError(e);
@@ -1263,22 +1263,10 @@ public final class Parser {
      */
     private Expression parseTerm() throws IOException {
         var term = parseFactor();
-        /*
-         * if (scanner.symbol() == Symbol.identifier &&
-         * !scanner.symbol().isReservedWord()) {
-         * scanner.advance();
-         * }
-         */
         while (scanner.symbol().isMultiplyingOperator()) {
             var operator = scanner.token();
             matchCurrentSymbol();
             var rightOperand = parseFactor();
-            /*
-             * if (scanner.symbol() == Symbol.identifier &&
-             * !scanner.symbol().isReservedWord()) {
-             * scanner.advance();
-             * }
-             */
             term = new MultiplyingExpr(term, operator, rightOperand);
         }
         return term;
@@ -1355,7 +1343,7 @@ public final class Parser {
     }
 
     /**
-     * PARTIALLY BOOK
+     * handle minus sign, negative constant isn't legal
      * 
      * constValue = ( [ "-" ] literal ) | constId.
      * 
@@ -1368,11 +1356,13 @@ public final class Parser {
                 var text = scanner.text();
                 var constId = scanner.token();
                 var constdecl = idTable.get(text);
+                var errorPos = scanner.position();
                 match(Symbol.identifier);
                 if (constdecl instanceof ConstDecl) {
                     return new ConstValue(constId, (ConstDecl) constdecl);
                 } else {
-                    throw error("Identifier \"" + text + "\" is not a constant.");
+                    var errorMsg = "Identifier \"" + text + "\" is not a constant.";
+                    throw error(errorPos, errorMsg);
                 }
             } else {
                 Expression constValue;

@@ -24,7 +24,22 @@ public class MultiplyingExpr extends BinaryExpr {
 
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+            leftOperand().checkConstraints();
+            rightOperand().checkConstraints();
+
+            if (leftOperand().type() != Type.Integer) {
+                var errorMsg = "Left operand should have type Integer.";
+                throw error(leftOperand().position(), errorMsg);
+            }
+
+            if (rightOperand().type() != Type.Integer) {
+                var errorMsg = "Right operand should have type Integer.";
+                throw error(rightOperand().position(), errorMsg);
+            }
+        } catch (ConstraintException ex) {
+            errorHandler().reportError(ex);
+        }
     }
 
     @Override
