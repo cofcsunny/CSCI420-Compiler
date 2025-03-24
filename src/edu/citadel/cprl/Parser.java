@@ -137,17 +137,27 @@ public final class Parser {
             var constId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.assign);
+            Token token;
             if (scanner.symbol() == Symbol.minus) {
+                var position = scanner.position();
                 matchCurrentSymbol();
+                Token literal = parseLiteral();
+                var symbol = Symbol.intLiteral;
+                var text = "-" + literal.text();
+                token = new Token(symbol,
+                        position, text);
+            } else {
+                token = parseLiteral();
             }
-            var literal = parseLiteral();
             match(Symbol.semicolon);
             var constDecl = new ConstDecl(constId,
-                    Type.typeOf(literal), literal);
+                    Type.typeOf(token), token);
             idTable.add(constDecl);
 
             return constDecl;
-        } catch (ParserException e) {
+        } catch (
+
+        ParserException e) {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
@@ -155,8 +165,6 @@ public final class Parser {
     }
 
     /**
-     * GIVEN
-     * 
      * literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
      * 
      * @return The parsed literal token. Returns a default token if parsing fails.
@@ -1366,20 +1374,23 @@ public final class Parser {
                 }
             } else {
                 Expression constValue;
+                Token token;
                 if (scanner.symbol() == Symbol.minus) {
-                    var operator = scanner.token();
-                    matchCurrentSymbol();
                     if (scanner.symbol() == Symbol.identifier) {
                         var errorMsg = "Identifier can not follow \"-\".";
                         var errorPos = scanner.position();
                         throw error(errorPos, errorMsg);
                     }
-                    var operand = parseConstValue();
-                    constValue = new NegationExpr(operator, operand);
+                    var position = scanner.position();
+                    matchCurrentSymbol();
+                    token = parseLiteral();
+                    var text = "-" + token.text();
+                    token = new Token(Symbol.intLiteral,
+                            position, text);
                 } else {
-                    var literal = parseLiteral();
-                    constValue = new ConstValue(literal);
+                    token = parseLiteral();
                 }
+                constValue = new ConstValue(token);
                 return constValue;
             }
         } catch (ParserException e) {
