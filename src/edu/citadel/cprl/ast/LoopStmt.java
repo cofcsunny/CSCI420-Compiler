@@ -62,7 +62,6 @@ public class LoopStmt extends Statement {
                             "Loop condition must be of type Boolean.");
                 }
             }
-
             if (statement != null) {
                 statement.checkConstraints();
             }
