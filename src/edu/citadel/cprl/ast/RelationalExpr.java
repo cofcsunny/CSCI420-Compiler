@@ -28,13 +28,20 @@ public class RelationalExpr extends BinaryExpr {
 
     @Override
     public void checkConstraints() {
-        // ...
-        leftOperand().checkConstraints();
-    	rightOperand().checkConstraints();
-    	
-    	Type L = leftOperand().type();
-    	Type R = rightOperand().type();
-    	
+        try {
+            leftOperand().checkConstraints();
+            rightOperand().checkConstraints();
+
+            if (leftOperand().type() != Type.Boolean
+                    || rightOperand().type() != Type.Boolean) {
+                var errorMsg = "Both operands of relational " +
+                        "expression must have type boolean";
+                var errorPos = leftOperand().position();
+                throw new ConstraintException(errorPos, errorMsg);
+            }
+        } catch (ConstraintException e) {
+
+        }
     }
 
     @Override

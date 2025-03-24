@@ -32,19 +32,22 @@ public class AssignmentStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-    	try {
-	    	variable.checkConstraints();
-	        expr.checkConstraints();
-	        if (!variable.type().equals(expr.type())) {
-	            throw error(assignPosition, "Type mismatch in assignment: cannot assign " 
-	                        + expr.type() + " to " + variable.type() + ".");
-	        }
-	        if (true) {
-	            throw error(assignPosition, "Cannot assign to a constant variable.");
-	        }
-	    } catch (ConstraintException ex) {
-	        errorHandler().reportError(ex);
-	    }
+        try {
+            variable.checkConstraints();
+            expr.checkConstraints();
+            if (!variable.type().equals(expr.type())) {
+                throw error(assignPosition, "Type mismatch in assignment: cannot assign "
+                        + expr.type() + " to " + variable.type() + ".");
+            }
+            /*
+             * TODO
+             * if (true) {
+             * throw error(assignPosition, "Cannot assign to a constant variable.");
+             * }
+             */
+        } catch (ConstraintException ex) {
+            errorHandler().reportError(ex);
+        }
     }
 
     @Override
