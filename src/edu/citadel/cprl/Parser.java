@@ -1369,6 +1369,11 @@ public final class Parser {
                 if (scanner.symbol() == Symbol.minus) {
                     var operator = scanner.token();
                     matchCurrentSymbol();
+                    if (scanner.symbol() == Symbol.identifier) {
+                        var errorMsg = "Identifier can not follow \"-\".";
+                        var errorPos = scanner.position();
+                        throw error(errorPos, errorMsg);
+                    }
                     var operand = parseConstValue();
                     constValue = new NegationExpr(operator, operand);
                 } else {

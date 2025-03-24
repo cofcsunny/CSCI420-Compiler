@@ -19,14 +19,12 @@ import edu.citadel.common.util.CharUtil;
  * Performs lexical analysis for the CPRL programming language.
  * Implements k tokens of lookahead.
  */
-public final class Scanner
-  {
+public final class Scanner {
     private Source source;
     private ErrorHandler errorHandler;
-    
+
     private HashMap<String, Symbol> reservedWords;
-    
-    
+
     // buffer to hold lookahead tokens
     private BoundedBuffer<Token> tokenBuffer;
 
@@ -37,377 +35,342 @@ public final class Scanner
      * Construct a scanner with its associated source file, number of
      * lookahead tokens, and error handler.
      */
-    public Scanner(File sourceFile, int k, ErrorHandler errorHandler) throws IOException
-      {
+    public Scanner(File sourceFile, int k, ErrorHandler errorHandler) throws IOException {
         var fileReader = new FileReader(sourceFile, StandardCharsets.UTF_8);
         var reader = new BufferedReader(fileReader);
         source = new Source(reader);
-        tokenBuffer  = new BoundedBuffer<>(k);
+        tokenBuffer = new BoundedBuffer<>(k);
         this.errorHandler = errorHandler;
 
-        //Making the HashMap
+        // Making the HashMap
         reservedWords = new HashMap<>();
-        for(Symbol symbol : Symbol.values()) {
-		if(symbol.isReservedWord()) {
-			reservedWords.put(symbol.toString(), symbol);
-        	}
+        for (Symbol symbol : Symbol.values()) {
+            if (symbol.isReservedWord()) {
+                reservedWords.put(symbol.toString(), symbol);
+            }
         }
-        
 
         // fill token buffer with k tokens
         for (int i = 0; i < k; ++i) {
-			advance();
-		}
-      }
+            advance();
+        }
+    }
 
     /**
      * The current token; equivalent to lookahead(1).
      */
-    public Token token()
-      {
+    public Token token() {
         return lookahead(1);
-      }
+    }
 
     /**
      * The current symbol; equivalent to lookahead(1).symbol().
      */
-    public Symbol symbol()
-      {
+    public Symbol symbol() {
         return lookahead(1).symbol();
-      }
+    }
 
     /**
      * The current text; equivalent to lookahead(1).text().
      */
-    public String text()
-      {
+    public String text() {
         return lookahead(1).text();
-      }
+    }
 
     /**
      * The current position; equivalent to lookahead(1).position().
      */
-    public Position position()
-      {
+    public Position position() {
         return lookahead(1).position();
-      }
+    }
 
     /**
-     * Returns the ith lookahead token.  Valid parameter values are in the
+     * Returns the ith lookahead token. Valid parameter values are in the
      * range 1..k; i.e., the first (current) lookahead token is lookahead(1).
      */
-    public Token lookahead(int i)
-      {
+    public Token lookahead(int i) {
         assert i >= 1 && i <= tokenBuffer.capacity() : "Range check for lookahead token index";
         return tokenBuffer.get(i - 1);
-      }
+    }
 
     /**
      * Advance the scanner one token.
      */
-    public void advance() throws IOException
-      {
+    public void advance() throws IOException {
         tokenBuffer.add(nextToken());
-      }
+    }
 
     /**
      * Advance until the current symbol matches the symbol specified
      * in the parameter or until end of file is encountered.
      */
-    public void advanceTo(Symbol symbol) throws IOException
-      {
+    public void advanceTo(Symbol symbol) throws IOException {
         while (symbol() != symbol && symbol() != Symbol.EOF) {
-			advance();
-		}
-      }
+            advance();
+        }
+    }
 
     /**
      * Advance until the current symbol matches one of the symbols
      * in the given set or until end of file is encountered.
      */
-    public void advanceTo(Set<Symbol> symbols) throws IOException
-      {
+    public void advanceTo(Set<Symbol> symbols) throws IOException {
         while (!symbols.contains(symbol()) && symbol() != Symbol.EOF) {
-			advance();
-		}
-      }
+            advance();
+        }
+    }
 
     /**
      * Returns the next token in the source file.
      */
-    private Token nextToken() throws IOException
-      {
-        var symbol   = Symbol.unknown;
+    private Token nextToken() throws IOException {
+        var symbol = Symbol.unknown;
         var position = new Position();
-        var text     = "";
-        //TODO: order respective to Symbol.java
-        try
-          {
+        var text = "";
+        // TODO: order respective to Symbol.java
+        try {
             skipWhiteSpace();
 
             // currently at starting character of next token
             position = source.charPosition();
 
-            if (source.currentChar() == Source.EOF)
-              {
+            if (source.currentChar() == Source.EOF) {
                 // set symbol but don't advance source
                 symbol = Symbol.EOF;
-              }
-            else if (CharUtil.isLetter(source.currentChar()))
-              {
+            } else if (CharUtil.isLetter(source.currentChar())) {
                 var idString = scanIdentifier();
                 symbol = getIdentifierSymbol(idString);
 
                 if (symbol == Symbol.identifier) {
-					text = idString;
-				}
-              }
-            else if (CharUtil.isDigit(source.currentChar()))
-              {
+                    text = idString;
+                }
+            } else if (CharUtil.isDigit(source.currentChar())) {
                 symbol = Symbol.intLiteral;
-                text   = scanIntLiteral();
-              }
-            else
-              {
-                switch (source.currentChar())
-                  {
-                    case '+' ->
-                      {
+                text = scanIntLiteral();
+            } else {
+                switch (source.currentChar()) {
+                    case '+' -> {
                         symbol = Symbol.plus;
                         source.advance();
                     }
-                    case '-'->{
-                    	symbol = Symbol.minus;
-                    	source.advance();
-                    }
-                    case '*'->{
-                    	symbol = Symbol.times;
-                    	source.advance();
-                    }
-                    case '/' ->
-                    {
-                      source.advance();
-                      if (source.currentChar() == '/')
-                        {
-                          skipComment();
-                          return nextToken();   // continue scanning for next token
-                        } else {
-						symbol = Symbol.divide;
-					}
-                    }
-// ...
-                    case '='->{
-                    	symbol = Symbol.equals;
-                    	source.advance();
-                    }
-                    case '!'->{
-                    	source.advance();
-                    	if(source.currentChar() == '=') {
-                    		symbol = Symbol.notEqual;
-                    		source.advance();
-                    	}else {
-                    		var errorMsg = "Invalid character \'!\'";
-                    		source.advance();
-                    		throw error(errorMsg);
-                    	}
-                    }
-                    case '<' ->
-                      {
+                    case '-' -> {
+                        symbol = Symbol.minus;
                         source.advance();
-                        if (source.currentChar() == '=')
-                          {
+                    }
+                    case '*' -> {
+                        symbol = Symbol.times;
+                        source.advance();
+                    }
+                    case '/' -> {
+                        source.advance();
+                        if (source.currentChar() == '/') {
+                            skipComment();
+                            return nextToken(); // continue scanning for next token
+                        } else {
+                            symbol = Symbol.divide;
+                        }
+                    }
+                    // ...
+                    case '=' -> {
+                        symbol = Symbol.equals;
+                        source.advance();
+                    }
+                    case '!' -> {
+                        source.advance();
+                        if (source.currentChar() == '=') {
+                            symbol = Symbol.notEqual;
+                            source.advance();
+                        } else {
+                            var errorMsg = "Invalid character \'!\'";
+                            source.advance();
+                            throw error(errorMsg);
+                        }
+                    }
+                    case '<' -> {
+                        source.advance();
+                        if (source.currentChar() == '=') {
                             symbol = Symbol.lessOrEqual;
                             source.advance();
-                          }
-                        else if (source.currentChar() == '<')
-                          {
+                        } else if (source.currentChar() == '<') {
                             symbol = Symbol.leftShift;
                             source.advance();
-                          } else {
-							symbol = Symbol.lessThan;
-						}
-                      }
-                    case '>' ->
-                    {
-                    	source.advance();
-                    	if (source.currentChar() == '=') {
-                    		symbol = Symbol.greaterOrEqual;
-                    		source.advance();
-                    	}else if(source.currentChar() == '>') {
-                    		symbol = Symbol.rightShift;
-                    		source.advance();
-                    	}else {
-                    		symbol = Symbol.greaterThan;
-                    	}
+                        } else {
+                            symbol = Symbol.lessThan;
+                        }
                     }
-// ...
-                    case '&'->{
-                    	symbol = Symbol.bitwiseAnd;
-                    	source.advance();
+                    case '>' -> {
+                        source.advance();
+                        if (source.currentChar() == '=') {
+                            symbol = Symbol.greaterOrEqual;
+                            source.advance();
+                        } else if (source.currentChar() == '>') {
+                            symbol = Symbol.rightShift;
+                            source.advance();
+                        } else {
+                            symbol = Symbol.greaterThan;
+                        }
                     }
-                    case '|'->{
-                    	symbol = Symbol.bitwiseOr;
-                    	source.advance();
+                    // ...
+                    case '&' -> {
+                        symbol = Symbol.bitwiseAnd;
+                        source.advance();
                     }
-                    case '^'->{
-                    	symbol = Symbol.bitwiseXor;
-                    	source.advance();
+                    case '|' -> {
+                        symbol = Symbol.bitwiseOr;
+                        source.advance();
                     }
-                    case '~' ->
-                    {
-                    	symbol = Symbol.bitwiseNot;
-                    	source.advance();
+                    case '^' -> {
+                        symbol = Symbol.bitwiseXor;
+                        source.advance();
                     }
-// ...
-                    case '('->{
-                    	symbol = Symbol.leftParen;
-                    	source.advance();
+                    case '~' -> {
+                        symbol = Symbol.bitwiseNot;
+                        source.advance();
                     }
-                    case ')'->{
-                    	symbol = Symbol.rightParen;
-                    	source.advance();
+                    // ...
+                    case '(' -> {
+                        symbol = Symbol.leftParen;
+                        source.advance();
                     }
-                    case '['->{
-                    	symbol = Symbol.leftBracket;
-                    	source.advance();
+                    case ')' -> {
+                        symbol = Symbol.rightParen;
+                        source.advance();
                     }
-                    case ']'->{
-                    	symbol = Symbol.rightBracket;
-                    	source.advance();
+                    case '[' -> {
+                        symbol = Symbol.leftBracket;
+                        source.advance();
                     }
-                    case '{'->{
-                    	symbol = Symbol.leftBrace;
-                    	source.advance();
+                    case ']' -> {
+                        symbol = Symbol.rightBracket;
+                        source.advance();
                     }
-                    case '}'->{
-                    	symbol = Symbol.rightBrace;
-                    	source.advance();
+                    case '{' -> {
+                        symbol = Symbol.leftBrace;
+                        source.advance();
                     }
-                    case ','->{
-                    	symbol = Symbol.comma;
-                    	source.advance();
+                    case '}' -> {
+                        symbol = Symbol.rightBrace;
+                        source.advance();
                     }
-                    case ':'->{
-                    	source.advance();
-                    	if(source.currentChar() == '=') {
-                    		symbol = Symbol.assign;
-                    		source.advance();
-                    	}else {
-                    		symbol = Symbol.colon;
-                    	}
+                    case ',' -> {
+                        symbol = Symbol.comma;
+                        source.advance();
                     }
-                    case ';'->{
-                    	symbol = Symbol.semicolon;
-                    	source.advance();
+                    case ':' -> {
+                        source.advance();
+                        if (source.currentChar() == '=') {
+                            symbol = Symbol.assign;
+                            source.advance();
+                        } else {
+                            symbol = Symbol.colon;
+                        }
                     }
-                    case '.'->{
-                    	source.advance();
-                    	if(source.currentChar() == '.') {
-                    		symbol = Symbol.dotdot;
-                    		source.advance();
-                    	}else {
-                    		symbol = Symbol.dot;
-                    	}
+                    case ';' -> {
+                        symbol = Symbol.semicolon;
+                        source.advance();
                     }
-                    case '"' ->{
-                    	scanStringLiteral();
-                    	symbol = Symbol.stringLiteral;
+                    case '.' -> {
+                        source.advance();
+                        if (source.currentChar() == '.') {
+                            symbol = Symbol.dotdot;
+                            source.advance();
+                        } else {
+                            symbol = Symbol.dot;
+                        }
                     }
-                    case '\'' ->{
-                    	scanCharLiteral();
-                    	symbol = Symbol.charLiteral;
+                    case '"' -> {
+                        scanStringLiteral();
+                        symbol = Symbol.stringLiteral;
                     }
-// ...
-                    default ->
-                      {
+                    case '\'' -> {
+                        scanCharLiteral();
+                        symbol = Symbol.charLiteral;
+                    }
+                    // ...
+                    default -> {
                         var errorMsg = "Invalid character \'" + ((char) source.currentChar()) + "\'";
                         source.advance();
                         throw error(errorMsg);
-                      }
-                  }
-              }
-          }
-        catch (ScannerException e)
-          {
+                    }
+                }
+            }
+        } catch (ScannerException e) {
             errorHandler.reportError(e);
             // set symbol to either EOF or unknown
             symbol = source.currentChar() == Source.EOF ? Symbol.EOF : Symbol.unknown;
-          }
+        }
 
         return new Token(symbol, position, text);
-      }
+    }
 
     /**
      * Returns the symbol associated with an identifier
      * (Symbol.arrayRW, Symbol.ifRW, Symbol.identifier, etc.)
      */
-    private Symbol getIdentifierSymbol(String idString)
-      {
-// ...  Hint: Need an efficient search based on the text of the identifier (parameter idString)
-    	Symbol symbol = reservedWords.get(idString);
-    	if(symbol != null) {
-    		return symbol;
-    	}else {
-    		return Symbol.identifier;
-    	}
-      }
+    private Symbol getIdentifierSymbol(String idString) {
+        // ... Hint: Need an efficient search based on the text of the identifier
+        // (parameter idString)
+        Symbol symbol = reservedWords.get(idString);
+        if (symbol != null) {
+            return symbol;
+        } else {
+            return Symbol.identifier;
+        }
+    }
 
     /**
      * Skip over a comment.
      */
-    private void skipComment() throws ScannerException, IOException
-      {
+    private void skipComment() throws ScannerException, IOException {
         // assumes that source.currentChar() is the second '/' of the comment
         assert source.currentChar() == '/';
 
         while (source.currentChar() != '\n' && source.currentChar() != Source.EOF) {
-			source.advance();
-		}
+            source.advance();
+        }
 
         // continue scanning
         source.advance();
-      }
+    }
 
     /**
      * Clear the scan buffer (makes it empty).
      */
-    private void clearScanBuffer()
-      {
+    private void clearScanBuffer() {
         scanBuffer.delete(0, scanBuffer.length());
-      }
+    }
 
     /**
-     * Scans characters in the source file for a valid identifier using the lexical rule<br>
+     * Scans characters in the source file for a valid identifier using the lexical
+     * rule<br>
      * <code>identifier = letter { letter | digit } .</code>
      *
      * @return the string of letters and digits for the identifier.
      */
-    private String scanIdentifier() throws IOException
-      {
-    	// assumes that source.currentChar() is the first letter of the identifier
+    private String scanIdentifier() throws IOException {
+        // assumes that source.currentChar() is the first letter of the identifier
         assert CharUtil.isLetter(source.currentChar());
         clearScanBuffer();
 
         char i = (char) source.currentChar();
-        while(CharUtil.isLetterOrDigit(i)){
-        	scanBuffer.append(i);
-        	source.advance();
-        	i = (char) source.currentChar();
+        while (CharUtil.isLetterOrDigit(i)) {
+            scanBuffer.append(i);
+            source.advance();
+            i = (char) source.currentChar();
         }
-        //System.out.print(scanBuffer.toString());
+        // System.out.print(scanBuffer.toString());
         return scanBuffer.toString();
-// ...
-      }
+        // ...
+    }
 
     /**
      * Scans characters in the source file for a valid integer literal.
-     * Supports binary and hex notation for integer literals.  Assumes that
+     * Supports binary and hex notation for integer literals. Assumes that
      * source.currentChar() is the first character of the Integer literal.
      *
      * @return the string of digits for the integer literal.
      */
-    private String scanIntLiteral() throws ScannerException, IOException
-      {
+    private String scanIntLiteral() throws ScannerException, IOException {
         // assumes that source.currentChar() is the first digit of the integer literal
         assert CharUtil.isDigit(source.currentChar());
 
@@ -418,30 +381,26 @@ public final class Scanner
         scanBuffer.append(firstChar);
         source.advance();
 
-        if (firstChar == '0')
-          {
+        if (firstChar == '0') {
             char secondChar = (char) source.currentChar();
 
-            if (secondChar == 'x' || secondChar == 'X')
-              {
+            if (secondChar == 'x' || secondChar == 'X') {
                 scanBuffer.append(CharUtil.toUpperCase(secondChar));
                 source.advance();
                 scanHexLiteral();
-              }
-            else if (secondChar == 'b' || secondChar == 'B')
-              {
+            } else if (secondChar == 'b' || secondChar == 'B') {
                 scanBuffer.append(CharUtil.toUpperCase(secondChar));
                 source.advance();
                 scanBinaryLiteral();
-              } else {
-				scanDecimalLiteral();
-			}
-          } else {
-			scanDecimalLiteral();
-		}
+            } else {
+                scanDecimalLiteral();
+            }
+        } else {
+            scanDecimalLiteral();
+        }
 
         return scanBuffer.toString();
-      }
+    }
 
     /**
      * Scans characters in the source file for a valid decimal (base 10)
@@ -449,17 +408,15 @@ public final class Scanner
      * <code>decimalLiteral = digit { digit } .<br>
      * digit = '0'..'9' .</code>
      */
-    private void scanDecimalLiteral() throws IOException
-      {
+    private void scanDecimalLiteral() throws IOException {
         // assumes that scanBuffer starts with a digit
         assert CharUtil.isDigit(scanBuffer.charAt(0));
 
-        while (CharUtil.isDigit(source.currentChar()))
-          {
+        while (CharUtil.isDigit(source.currentChar())) {
             scanBuffer.append((char) source.currentChar());
             source.advance();
-          }
-      }
+        }
+    }
 
     /**
      * Scans characters in the source file for a valid binary (base 2)
@@ -467,23 +424,20 @@ public final class Scanner
      * <code>binaryLiteral = [ "0b" | "0B ] binaryDigit { binaryDigit } .<br>
      * binaryDigit = '0'..'1' .</code>
      */
-    private void scanBinaryLiteral() throws ScannerException, IOException
-      {
+    private void scanBinaryLiteral() throws ScannerException, IOException {
         // assumes that scanBuffer contains "0B"
         assert scanBuffer.charAt(0) == '0' && scanBuffer.charAt(1) == 'B';
 
         // check that the next character is a binary digit
         if (!CharUtil.isBinaryDigit(source.currentChar())) {
-			throw error("Improperly formed binary literal.");
-		}
+            throw error("Improperly formed binary literal.");
+        }
 
-        do
-          {
+        do {
             scanBuffer.append((char) source.currentChar());
             source.advance();
-          }
-        while (CharUtil.isBinaryDigit(source.currentChar()));
-      }
+        } while (CharUtil.isBinaryDigit(source.currentChar()));
+    }
 
     /**
      * Scans characters in the source file for a valid hexadecimal (base 16)
@@ -491,68 +445,66 @@ public final class Scanner
      * <code>hexLiteral = [ "0x" | "0X" ] hexDigit { hexDigit} .<br>
      * hexDigit = '0'..'9' + 'A'..'F' + 'a'..'f' .</code>
      */
-    private void scanHexLiteral() throws ScannerException, IOException
-      {
-    	clearScanBuffer();
-    	char h = (char)source.currentChar();
-    	scanBuffer.append(h);
-    	source.advance();
-    	while(CharUtil.isHexDigit(source.currentChar())) {
-    		scanBuffer.append(h);
-    		source.advance();
-    	}
-      }
+    private void scanHexLiteral() throws ScannerException, IOException {
+        char h = (char) source.currentChar();
+        scanBuffer.append(h);
+        source.advance();
+        while (CharUtil.isHexDigit(source.currentChar())) {
+            scanBuffer.append(h);
+            source.advance();
+        }
+    }
 
     /**
-     * Scan characters in the source file for a String literal.  Escaped
+     * Scan characters in the source file for a String literal. Escaped
      * characters are not converted; e.g., '\t' is not converted to the tab
-     * character since the assembler performs the conversion.  Assumes that
+     * character since the assembler performs the conversion. Assumes that
      * source.currentChar() is the opening double quote (") of the String literal.
      *
      * @return the string of characters for the string literal, including
      *         opening and closing quotes
      */
-    private String scanStringLiteral() throws ScannerException, IOException
-      {
-        // assumes that source.currentChar() is the opening double quote for the string literal
+    private String scanStringLiteral() throws ScannerException, IOException {
+        // assumes that source.currentChar() is the opening double quote for the string
+        // literal
         assert source.currentChar() == '"';
 
-        //var errorMsg = "Invalid String Literal.";
+        // var errorMsg = "Invalid String Literal.";
         clearScanBuffer();
 
-        char s = (char)source.currentChar();
+        char s = (char) source.currentChar();
         scanBuffer.append(s);
         source.advance();
 
-        while(source.currentChar() != '"'){
-        	checkGraphicChar(source.currentChar());
-        	s = (char) source.currentChar();
-        	if(s == '\\') {
-        		scanBuffer.append(scanEscapedChar());
-        		//source.advance();
-        	}else {
-        		scanBuffer.append(s);
-        	}
-        	//scanBuffer.append(s);
-        	source.advance();
+        while (source.currentChar() != '"') {
+            checkGraphicChar(source.currentChar());
+            s = (char) source.currentChar();
+            if (s == '\\') {
+                scanBuffer.append(scanEscapedChar());
+                // source.advance();
+            } else {
+                scanBuffer.append(s);
+            }
+            // scanBuffer.append(s);
+            source.advance();
         }
         source.advance();
         return scanBuffer.toString();
-// ...
-      }
+        // ...
+    }
 
     /**
-     * Scan characters in the source file for a Char literal.  Escaped
+     * Scan characters in the source file for a Char literal. Escaped
      * characters are not converted; e.g., '\t' is not converted to the tab
-     * character since the assembler performs that conversion.  Assumes that
+     * character since the assembler performs that conversion. Assumes that
      * source.currentChar() is the opening single quote (') of the Char literal.
      *
      * @return the string of characters for the char literal, including
      *         opening and closing single quotes.
      */
-    private String scanCharLiteral() throws ScannerException, IOException
-      {
-        // assumes that source.currentChar() is the opening single quote for the char literal
+    private String scanCharLiteral() throws ScannerException, IOException {
+        // assumes that source.currentChar() is the opening single quote for the char
+        // literal
         assert source.currentChar() == '\'';
 
         var errorMsg = "Invalid Char literal.";
@@ -567,130 +519,124 @@ public final class Scanner
         c = (char) source.currentChar();
 
         if (c == '\\') { // escaped character
-			scanBuffer.append(scanEscapedChar());
-		} else if (c == '\'')
-          {
+            scanBuffer.append(scanEscapedChar());
+        } else if (c == '\'') {
             // either '' (empty) or '''; both are invalid
             source.advance();
             c = (char) source.currentChar();
 
             if (c == '\'') { // three single quotes in a row
-				source.advance();
-			}
+                source.advance();
+            }
 
             throw error(errorMsg);
-          }
-        else
-          {
+        } else {
             scanBuffer.append(c);
             source.advance();
-          }
+        }
 
-        c = (char) source.currentChar();   // should be the closing single quote
+        c = (char) source.currentChar(); // should be the closing single quote
         checkGraphicChar(c);
 
-        if (c == '\'')
-          {
-            scanBuffer.append(c);      // append the closing quote
+        if (c == '\'') {
+            scanBuffer.append(c); // append the closing quote
             source.advance();
-          } else {
-			throw error(errorMsg);
-		}
+        } else {
+            throw error(errorMsg);
+        }
 
         return scanBuffer.toString();
-      }
+    }
 
     /**
      * Scans characters in the source file for an escaped character; i.e.,
-     * a character preceded by a backslash.  This method checks escape
-     * characters \t, \n, \r, \", \', and \\.  If the character following
+     * a character preceded by a backslash. This method checks escape
+     * characters \t, \n, \r, \", \', and \\. If the character following
      * a backslash is anything other than one of these characters, then
-     * an error is reported.  Note that the escaped character sequence is
+     * an error is reported. Note that the escaped character sequence is
      * returned unmodified; i.e., \t returns "\t", not the tab character.
      * Assumes that source.currentChar() is the escape character (\).
      *
      * @return the escaped character sequence unmodified.
      */
-    private String scanEscapedChar() throws ScannerException, IOException
-      {
+    private String scanEscapedChar() throws ScannerException, IOException {
         // assumes that source.currentChar() is the backslash for the escaped char
         assert source.currentChar() == '\\';
 
         // Need to save current position for error reporting.
-         var backslashPosition = source.charPosition();
+        var backslashPosition = source.charPosition();
 
         source.advance();
         checkGraphicChar(source.currentChar());
         char c = (char) source.currentChar();
 
-        source.advance();   // leave source at second character following backslash
+        source.advance(); // leave source at second character following backslash
 
-        switch (c)
-          {
-            case 't':  return "\\t";    // tab
-            case 'n':  return "\\n";    // newline
-            case 'r':  return "\\r";    // carriage return
-            case '\"': return "\\\"";   // double quote
-            case '\'': return "\\\'";   // single quote
-            case '\\': return "\\\\";   // backslash
-            default:
-              {
+        switch (c) {
+            case 't':
+                return "\\t"; // tab
+            case 'n':
+                return "\\n"; // newline
+            case 'r':
+                return "\\r"; // carriage return
+            case '\"':
+                return "\\\""; // double quote
+            case '\'':
+                return "\\\'"; // single quote
+            case '\\':
+                return "\\\\"; // backslash
+            default: {
                 // report error but return the invalid character
                 var ex = error(backslashPosition, "Illegal escape character.");
                 errorHandler.reportError(ex);
                 return "\\" + c;
-              }
-          }
-      }
+            }
+        }
+    }
 
     /**
      * Fast skip over white space.
      */
-    private void skipWhiteSpace() throws IOException
-      {
+    private void skipWhiteSpace() throws IOException {
         while (Character.isWhitespace((char) source.currentChar())) {
-			source.advance();
-		}
-      }
+            source.advance();
+        }
+    }
 
     /**
      * Checks that the integer represents a graphic character in the
      * Unicode Basic Multilingual Plane (BMP).
      *
      * @throws ScannerException if the integer does not represent a
-     *         BMP graphic character.
+     *                          BMP graphic character.
      */
-    private void checkGraphicChar(int n) throws ScannerException
-      {
+    private void checkGraphicChar(int n) throws ScannerException {
         if (n == Source.EOF) {
-			throw error("End of file reached before closing quote for Char or String literal.");
-		} else if (n > 0xffff) {
-			throw error("Character not in Unicode Basic Multilingual Pane (BMP)");
-		} else
-          {
+            throw error("End of file reached before closing quote for Char or String literal.");
+        } else if (n > 0xffff) {
+            throw error("Character not in Unicode Basic Multilingual Pane (BMP)");
+        } else {
             if (n == '\r' || n == '\n') { // special check for end of line
-				throw error("Char and String literals can not extend past end of line.");
-			} else if (Character.isISOControl(n)) { // Sorry. No ISO control characters.
-				throw error("Control characters not allowed in Char or String literal.");
-			}
-          }
-      }
+                throw error("Char and String literals can not extend past end of line.");
+            } else if (Character.isISOControl(n)) { // Sorry. No ISO control characters.
+                throw error("Control characters not allowed in Char or String literal.");
+            }
+        }
+    }
 
     /**
      * Returns a scanner exception with the specified error message
      * and current token position.
      */
-    private ScannerException error(String errorMsg)
-      {
+    private ScannerException error(String errorMsg) {
         return error(source.charPosition(), errorMsg);
-      }
+    }
 
     /**
      * Returns a scanner exception with the specified error message
      * and token position.
      */
-    private ScannerException error(Position position, String errorMsg)
-      {
+    private ScannerException error(Position position, String errorMsg) {
         return new ScannerException(position, errorMsg);
-      }
-  }
+    }
+}
