@@ -30,24 +30,25 @@ public class NotExpr extends UnaryExpr {
     @Override
     public void checkConstraints() {
         try {
-    		operand().checkConstraints();
-    		
-    		Type a = operand().type();
-    		Symbol b = operator().symbol(); 
-    		if(b == Symbol.minus) {
-    			if(a != Type.Integer) {
-        			throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand." );
-        		}
-    		} else if(b == Symbol.bitwiseNot) {
-    			if(a != Type.Integer) {
-        			throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand." );
-        		}
-    		} else {
-    			throw new ConstraintException(operand().position(), "Invalid operator for negation expression.");
-    		}
-    	}catch(ConstraintException e) {
-    		errorHandler().reportError(e);;
-    	}
+            operand().checkConstraints();
+
+            Type a = operand().type();
+            Symbol b = operator().symbol();
+            if (b == Symbol.minus) {
+                if (a != Type.Integer) {
+                    throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand.");
+                }
+            } else if (b == Symbol.bitwiseNot) {
+                if (a != Type.Integer) {
+                    throw new ConstraintException(operand().position(), "Operator '-' requires an integer operand.");
+                }
+            } else {
+                throw new ConstraintException(operand().position(), "Invalid operator for negation expression.");
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+            ;
+        }
     }
 
     @Override

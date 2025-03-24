@@ -24,7 +24,14 @@ public class NegationExpr extends UnaryExpr {
 
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+            if (operand().type() != Type.Integer) {
+                var errorMsg = "Operand should have type Integer.";
+                throw error(operand().position(), errorMsg);
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 
     @Override

@@ -26,11 +26,10 @@ public class ExitStmt extends Statement {
     public void checkConstraints() {
         try {
             if (whenExpr != null &&
-                    whenExpr.type() != Type.Integer) {
-                var errorMsg = "Left operand should have type Integer.";
+                    whenExpr.type() != Type.Boolean) {
+                var errorMsg = "When expression should have type Boolean.";
                 throw error(whenExpr.position(), errorMsg);
             }
-
         } catch (ConstraintException e) {
             errorHandler().reportError(e);
         }

@@ -23,17 +23,16 @@ public class ReadStmt extends Statement {
     public void checkConstraints() {
         // input is limited to integers, characters, and strings
         try {
-    		variable.checkConstraints();
-    		
+            variable.checkConstraints();
+
             Type varType = variable.type();
             if (!(varType == Type.Integer || varType == Type.Char || varType instanceof StringType)) {
                 throw new ConstraintException(variable.position(),
-                    "Invalid type for read statement, expecting Integer, Char, or String.");
+                        "Invalid type for read statement, expecting Integer, Char, or String.");
             }
-    	}
-            catch(ConstraintException e) {
-        		errorHandler().reportError(e);
-            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 
     @Override
