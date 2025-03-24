@@ -27,7 +27,8 @@ public class NegationExpr extends UnaryExpr {
         try {
             if (operand().type() != Type.Integer) {
                 var errorMsg = "Operand should have type Integer.";
-                throw error(operand().position(), errorMsg);
+                var errorPos = operand().position();
+                throw error(errorPos, errorMsg);
             }
         } catch (ConstraintException e) {
             errorHandler().reportError(e);

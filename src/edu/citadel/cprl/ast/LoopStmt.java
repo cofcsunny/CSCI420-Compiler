@@ -58,8 +58,9 @@ public class LoopStmt extends Statement {
                 whileExpr.checkConstraints();
 
                 if (!whileExpr.type().equals(Type.Boolean)) {
-                    throw new ConstraintException(whileExpr.position(),
-                            "Loop condition must be of type Boolean.");
+                    var errorMsg = "Loop condition must be of type Boolean.";
+                    var errorPos = whileExpr.position();
+                    throw new ConstraintException(errorPos, errorMsg);
                 }
             }
             if (statement != null) {
