@@ -40,11 +40,8 @@ public class CompoundStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
         for(Statement stmt : statements) {
-    		if (stmt != null) {
-    			stmt.emit();
-    		} 
+    		stmt.emit();
     	}
     }
 }
