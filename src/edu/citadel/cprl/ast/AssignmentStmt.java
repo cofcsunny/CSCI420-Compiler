@@ -56,7 +56,7 @@ public class AssignmentStmt extends Statement {
     	expr.emit();
     	
     	if(variable.type() != expr.type()) {
-    		throw new CodeGenException(variable.position(), "YOU FUCKED UP BITCHHHHHHHHH");
+    		throw new CodeGenException(variable.position(), "Error in Code generation, var type doesn't match expression type");
     	}
     }
 }
