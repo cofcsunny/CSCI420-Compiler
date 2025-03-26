@@ -72,6 +72,14 @@ public class LoopStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
+        emitLabel(L1);
+    	
+    	if(whileExpr != null) 
+    		whileExpr.emitBranch(false, L2);
+    	
+    	statement.emit();
+    	emit("BR " + L1);
+    	
+    	emitLabel(L2);
     }
 }
