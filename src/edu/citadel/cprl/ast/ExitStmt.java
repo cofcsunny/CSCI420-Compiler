@@ -37,6 +37,9 @@ public class ExitStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
+        if(whenExpr !=  null)
+    		whenExpr.emitBranch(true, loopStmt.exitLabel());
+    	else 
+    		emit("BR " + loopStmt.exitLabel());
     }
 }
