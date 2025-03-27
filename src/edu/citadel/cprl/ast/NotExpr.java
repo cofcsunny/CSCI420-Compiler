@@ -57,6 +57,13 @@ public class NotExpr extends UnaryExpr {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
+        operand().emit();
+    	
+    	if(operator().symbol() ==  Symbol.notRW)
+    		emit("NOT");
+    	else if(operator().symbol() == Symbol.bitwiseNot)
+    		emit("BITWISE_NOT");
+    	else
+    		throw new CodeGenException(operand().position(), "Unexpected operator in NotExpr.");
     }
 }
