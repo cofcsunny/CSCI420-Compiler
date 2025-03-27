@@ -44,6 +44,16 @@ public class MultiplyingExpr extends BinaryExpr {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
+        leftOperand().emit();
+    	rightOperand().emit();
+    	
+    	switch(operator().symbol()) {
+	    	case times -> emit();
+	    	case minus -> emit("SUB");
+	    	case plus -> emit("ADD");
+	    	case divide -> emit();
+	    	case modRW -> emit();
+	    	default -> throw new CodeGenException(operator().position(), "Unknown multiplying operator");
+    	}
     }
 }
