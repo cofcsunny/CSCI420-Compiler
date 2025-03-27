@@ -48,7 +48,7 @@ public class MultiplyingExpr extends BinaryExpr {
     	rightOperand().emit();
     	
     	switch(operator().symbol()) {
-	    	case times -> emit();
+	    	case times -> emit("MUL");
 	    	case minus -> emit("SUB");
 	    	case plus -> emit("ADD");
 	    	case divide -> emit();
