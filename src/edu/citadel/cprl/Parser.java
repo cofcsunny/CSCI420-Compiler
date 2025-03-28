@@ -10,190 +10,237 @@ import edu.citadel.cprl.ast.*;
 import java.io.IOException;
 import java.util.*;
 
-public final class Parser {
+/**
+ * This class uses recursive descent to perform syntax analysis of
+ * the CPRL source language and to generate an abstract syntax tree.
+ */
+public final class Parser
+  {
     private Scanner scanner;
     private IdTable idTable;
     private ErrorHandler errorHandler;
-    private LoopContext loopContext = new LoopContext();
+    private LoopContext  loopContext = new LoopContext();
     private SubprogramContext subprogramContext = new SubprogramContext();
 
+    /**
+     * Symbols that can follow a statement.
+     */
     private final Set<Symbol> stmtFollowers = EnumSet.of(
-            Symbol.identifier, Symbol.ifRW, Symbol.elseRW,
-            Symbol.whileRW, Symbol.loopRW, Symbol.forRW,
-            Symbol.readRW, Symbol.writeRW, Symbol.writelnRW,
-            Symbol.exitRW, Symbol.leftBrace, Symbol.rightBrace,
-            Symbol.returnRW, Symbol.comma, Symbol.EOF);
+        Symbol.identifier, Symbol.ifRW,      Symbol.elseRW,
+        Symbol.whileRW,    Symbol.loopRW,    Symbol.forRW,
+        Symbol.readRW,     Symbol.writeRW,   Symbol.writelnRW,
+        Symbol.exitRW,     Symbol.leftBrace, Symbol.rightBrace,
+        Symbol.returnRW);
 
-    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(Symbol.EOF,
-            Symbol.procRW, Symbol.funRW);
+    /**
+     * Symbols that can follow a subprogram declaration.
+     */
+    private final Set<Symbol> subprogDeclFollowers = EnumSet.of(
+        Symbol.procRW, Symbol.funRW, Symbol.EOF);
 
+    /**
+     * Symbols that can follow a factor.
+     */
     private final Set<Symbol> factorFollowers = EnumSet.of(
-            Symbol.semicolon, Symbol.loopRW, Symbol.thenRW,
-            Symbol.rightParen, Symbol.andRW, Symbol.orRW,
-            Symbol.equals, Symbol.notEqual, Symbol.lessThan,
-            Symbol.lessOrEqual, Symbol.greaterThan, Symbol.greaterOrEqual,
-            Symbol.plus, Symbol.minus, Symbol.times,
-            Symbol.divide, Symbol.modRW, Symbol.rightBracket,
-            Symbol.comma, Symbol.bitwiseAnd, Symbol.bitwiseOr,
-            Symbol.bitwiseXor, Symbol.leftShift, Symbol.rightShift,
-            Symbol.dotdot);
+        Symbol.semicolon,   Symbol.loopRW,      Symbol.thenRW,
+        Symbol.rightParen,  Symbol.andRW,       Symbol.orRW,
+        Symbol.equals,      Symbol.notEqual,    Symbol.lessThan,
+        Symbol.lessOrEqual, Symbol.greaterThan, Symbol.greaterOrEqual,
+        Symbol.plus,        Symbol.minus,       Symbol.times,
+        Symbol.divide,      Symbol.modRW,       Symbol.rightBracket,
+        Symbol.comma,       Symbol.bitwiseAnd,  Symbol.bitwiseOr,
+        Symbol.bitwiseXor,  Symbol.leftShift,   Symbol.rightShift,
+        Symbol.dotdot);
 
-    private Set<Symbol> initialDeclFollowers() {
+    /**
+     * Symbols that can follow an initial declaration.
+     * Set is computed dynamically based on the scope level.
+     */
+    private Set<Symbol> initialDeclFollowers()
+      {
         // An initial declaration can always be followed by another
         // initial declaration, regardless of the scope level.
-        var followers = EnumSet.of(Symbol.constRW, Symbol.varRW,
-                Symbol.typeRW);
+        var followers = EnumSet.of(Symbol.constRW, Symbol.varRW, Symbol.typeRW);
 
         if (idTable.scopeLevel() == ScopeLevel.GLOBAL)
             followers.addAll(EnumSet.of(Symbol.procRW, Symbol.funRW));
-        else {
+        else
+          {
             followers.addAll(stmtFollowers);
             followers.remove(Symbol.elseRW);
-        }
-        return followers;
-    }
+          }
 
-    public Parser(Scanner scanner, IdTable idTable, ErrorHandler errorHandler) {
+        return followers;
+      }
+
+    /**
+     * Construct a parser with the specified scanner, identifier
+     * table, and error handler.
+     */
+    public Parser(Scanner scanner, IdTable idTable, ErrorHandler errorHandler)
+      {
         this.scanner = scanner;
         this.idTable = idTable;
         this.errorHandler = errorHandler;
-    }
+      }
 
     /**
-     * program = initialDecls subprogramDecls.
-     * 
-     * @return The parsed program. Returns a program with an empty list
+     * Parse the following grammar rule:<br>
+     * <code>program = initialDecls subprogramDecls .</code>
+     *
+     * @return The parsed program.  Returns a program with an empty list
      *         of initial declarations and an empty list of subprogram
      *         declarations if parsing fails.
      */
-    public Program parseProgram() throws IOException {
-        try {
+    public Program parseProgram() throws IOException
+      {
+        try
+          {
             var initialDecls = parseInitialDecls();
-            var subprogramDecls = parseSubprogramDecls();
-            if (scanner.symbol() != Symbol.EOF) {
-                var errorMsg = "Expecting \"proc\" or \"fun\" but found \""
-                        + scanner.token() + "\" instead.";
-                throw error(errorMsg);
-            }
+            var subprogDecls = parseSubprogramDecls();
 
-            return new Program(initialDecls, subprogramDecls);
-        } catch (ParserException e) {
+            // match(Symbol.EOF)
+            // Let's generate a better error message than "Expecting "End-of-File" but ..."
+            if (scanner.symbol() != Symbol.EOF)
+              {
+                var errorMsg = "Expecting \"proc\" or \"fun\" but found \""
+                             + scanner.token() + "\" instead.";
+                throw error(errorMsg);
+              }
+
+            return new Program(initialDecls, subprogDecls);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.EOF));
             return new Program();
-        }
-    }
+          }
+      }
 
     /**
-     * initialDecls = { initialDecl }.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>initialDecls = { initialDecl } .</code>
+     *
      * @return The list of initial declarations.
      */
-    private List<InitialDecl> parseInitialDecls() throws IOException {
+    private List<InitialDecl> parseInitialDecls() throws IOException
+      {
         var initialDecls = new ArrayList<InitialDecl>(10);
 
         while (scanner.symbol().isInitialDeclStarter())
             initialDecls.add(parseInitialDecl());
 
         return initialDecls;
-    }
+      }
 
     /**
-     * initialDecl = constDecl | varDecl | typeDecl.
-     * 
-     * @return The parsed initial declaration. Returns an
-     *         empty initial declaration if parsing fails.
-     */
-    private InitialDecl parseInitialDecl() throws IOException {
-        try {
-            InitialDecl initialDecl;
-            var symbol = scanner.symbol();
-            if (symbol == Symbol.constRW) {
-                initialDecl = parseConstDecl();
-            } else if (symbol == Symbol.varRW) {
-                initialDecl = parseVarDecl();
-            } else if (symbol == Symbol.typeRW) {
-                initialDecl = parseTypeDecl();
-            } else {
-                throw error("Invalid initial declaration.");
-            }
-            return initialDecl;
-        } catch (ParserException e) {
-            errorHandler.reportError(e);
-            recover(initialDeclFollowers());
-            return EmptyInitialDecl.instance();
-        }
-    }
-
-    /**
-     * constDecl = "const" constId ":=" [ "-" ] literal ";".
+     * Parse the following grammar rule:<br>
+     * <code>initialDecl = constDecl | varDecl | typeDecl .</code>
      *
-     * @return The parsed constant declaration. Returns an
+     * @return The parsed initial declaration.  Returns an
      *         empty initial declaration if parsing fails.
      */
-    private InitialDecl parseConstDecl() throws IOException {
-        try {
+    private InitialDecl parseInitialDecl() throws IOException
+      {
+        return switch (scanner.symbol())
+          {
+            case constRW -> parseConstDecl();
+            case varRW   -> parseVarDecl();
+            case typeRW  -> parseTypeDecl();
+            default -> throw internalError("Invalid initial declaration.");
+          };
+      }
+
+    /**
+     * Parse the following grammar rule:<br>
+     * <code>constDecl = "const" constId ":=" [ "-" ] literal ";" .</code>
+     *
+     * @return The parsed constant declaration.  Returns an
+     *         empty initial declaration if parsing fails.
+     */
+    private InitialDecl parseConstDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.constRW);
             var constId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.assign);
-            Token token;
-            if (scanner.symbol() == Symbol.minus) {
-                var position = scanner.position();
+
+            var signSym = Symbol.unknown;
+            if (scanner.symbol() == Symbol.minus)
+              {
+                signSym = Symbol.minus;
                 matchCurrentSymbol();
-                Token literal = parseLiteral();
-                var symbol = Symbol.intLiteral;
-                var text = "-" + literal.text();
-                token = new Token(symbol,
-                        position, text);
-            } else {
-                token = parseLiteral();
-            }
+              }
+
+            var literal = parseLiteral();
+
+            // handle negative integer literals as a special case
+            if (signSym == Symbol.minus)
+              {
+                if (literal.symbol() == Symbol.intLiteral)
+                    literal.setText("-" + literal.text());
+                else
+                  {
+                    var errorMsg = "Minus sign can precede only integer literals.";
+                    throw error(literal.position(), errorMsg);
+                  }
+              }
+
             match(Symbol.semicolon);
-            var constDecl = new ConstDecl(constId,
-                    Type.typeOf(token), token);
+            var constDecl = new ConstDecl(constId, Type.typeOf(literal), literal);
             idTable.add(constDecl);
-
             return constDecl;
-        } catch (
-
-        ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .
-     * 
-     * @return The parsed literal token. Returns a default token if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>literal = intLiteral | charLiteral | stringLiteral | "true" | "false" .</code>
+     *
+     * @return The parsed literal token.  Returns a default token if parsing fails.
      */
-    private Token parseLiteral() throws IOException {
-        try {
-            if (scanner.symbol().isLiteral()) {
+    private Token parseLiteral() throws IOException
+      {
+        try
+          {
+            if (scanner.symbol().isLiteral())
+              {
                 var literal = scanner.token();
                 matchCurrentSymbol();
                 return literal;
-            } else
+              }
+            else
                 throw error("Invalid literal expression.");
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(factorFollowers);
             return new Token();
-        }
-    }
+          }
+      }
 
     /**
-     * varDecl = "var" identifiers ":"
-     * ( typeName | arrayTypeConstr | stringTypeConstr)
-     * [ ":=" initializer] ";".
-     * 
-     * @return The parsed variable declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>varDecl = "var" identifiers ":" ( typeName | arrayTypeConstr | stringTypeConstr )
+     *               [ ":=" initializer] ";" .</code>
+     *
+     * @return The parsed variable declaration.  Returns an
      *         empty initial declaration if parsing fails.
      */
-    private InitialDecl parseVarDecl() throws IOException {
-        try {
+    private InitialDecl parseVarDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.varRW);
             var identifiers = parseIdentifiers();
             match(Symbol.colon);
@@ -206,204 +253,248 @@ public final class Parser {
                 varType = parseArrayTypeConstr();
             else if (symbol == Symbol.stringRW)
                 varType = parseStringTypeConstr();
-            else {
+            else
+              {
                 var errorMsg = "Expecting a type name, reserved word \"array\", "
-                        + "or reserved word \"string\".";
+                             + "or reserved word \"string\".";
                 throw error(errorMsg);
-            }
+              }
 
             Initializer initializer = EmptyInitializer.instance();
-            if (scanner.symbol() == Symbol.assign) {
+            if (scanner.symbol() == Symbol.assign)
+              {
                 matchCurrentSymbol();
                 initializer = parseInitializer();
-            }
+              }
 
             match(Symbol.semicolon);
 
             var varDecl = new VarDecl(identifiers, varType, initializer,
-                    idTable.scopeLevel());
+                                      idTable.scopeLevel());
 
             for (SingleVarDecl decl : varDecl.singleVarDecls())
                 idTable.add(decl);
 
             return varDecl;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * identifiers = identifier { "," identifier } .
-     * 
-     * @return The list of identifier tokens. Returns an empty list if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>identifiers = identifier { "," identifier } .</code>
+     *
+     * @return The list of identifier tokens.  Returns an empty list if parsing fails.
      */
-    private List<Token> parseIdentifiers() throws IOException {
-        try {
+    private List<Token> parseIdentifiers() throws IOException
+      {
+        try
+          {
             var identifiers = new ArrayList<Token>(10);
             var idToken = scanner.token();
             match(Symbol.identifier);
             identifiers.add(idToken);
 
-            while (scanner.symbol() == Symbol.comma) {
+            while (scanner.symbol() == Symbol.comma)
+              {
                 matchCurrentSymbol();
                 idToken = scanner.token();
                 match(Symbol.identifier);
                 identifiers.add(idToken);
-            }
+              }
 
             return identifiers;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.colon, Symbol.greaterThan));
             return Collections.emptyList();
-        }
-    }
+          }
+      }
 
     /**
-     * initializer = constValue | compositeInitializer .
-     * 
-     * @return The parsed initializer. Returns an empty
+     * Parse the following grammar rule:<br>
+     * <code>initializer = constValue | compositeInitializer .</code>
+     *
+     * @return The parsed initializer.  Returns an empty
      *         initializer if parsing fails.
      */
-    private Initializer parseInitializer() throws IOException {
-        try {
+    private Initializer parseInitializer() throws IOException
+      {
+        try
+          {
             var symbol = scanner.symbol();
-            if (symbol == Symbol.identifier || symbol.isLiteral() || symbol == Symbol.minus) {
+            if (symbol == Symbol.identifier || symbol.isLiteral() || symbol == Symbol.minus)
+              {
                 var expr = parseConstValue();
                 return expr instanceof ConstValue constValue ? constValue
-                        : EmptyInitializer.instance();
-            } else if (symbol == Symbol.leftBrace)
+                                           : EmptyInitializer.instance();
+              }
+            else if (symbol == Symbol.leftBrace)
                 return parseCompositeInitializer();
-            else {
+            else
+              {
                 var errorMsg = "Expecting literal, identifier, or left brace.";
                 throw error(errorMsg);
-            }
-        } catch (ParserException e) {
+              }
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitializer.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * compositeInitializer = "{" initializer { "," initializer } "}" .
-     * 
-     * @return The parsed composite initializer. Returns an empty composite
+     * Parse the following grammar rule:<br>
+     * <code>compositeInitializer = "{" initializer { "," initializer } "}" .</code>
+     *
+     * @return The parsed composite initializer.  Returns an empty composite
      *         initializer if parsing fails.
      */
-    private CompositeInitializer parseCompositeInitializer() throws IOException {
-        try {
-            var position = scanner.position();
-            var compositeInitializer = new CompositeInitializer(position);
-            match(Symbol.leftBrace);
-            compositeInitializer.add(parseInitializer());
-            while (scanner.symbol() == Symbol.comma) {
-                match(Symbol.comma);
-                compositeInitializer.add(parseInitializer());
-            }
-            match(Symbol.rightBrace);
+    private CompositeInitializer parseCompositeInitializer() throws IOException
+      {
+        var position = scanner.position();
 
-            return compositeInitializer;
-        } catch (ParserException e) {
+        try
+          {
+            var initializers = new CompositeInitializer(position);
+            match(Symbol.leftBrace);
+            initializers.add(parseInitializer());
+
+            while (scanner.symbol() == Symbol.comma)
+              {
+                matchCurrentSymbol();
+                initializers.add(parseInitializer());
+              }
+
+            match(Symbol.rightBrace);
+            return initializers;
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.comma, Symbol.rightBrace, Symbol.semicolon));
-            return new CompositeInitializer(scanner.position());
-        }
-    }
+            return new CompositeInitializer(position);
+          }
+      }
 
     /**
-     * typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl.
-     * 
-     * @return The parsed type declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>typeDecl = arrayTypeDecl | recordTypeDecl | stringTypeDecl .</code>
+     *
+     * @return The parsed type declaration.  Returns an
      *         empty initial declaration parsing fails.
      */
-    private InitialDecl parseTypeDecl() throws IOException {
+    private InitialDecl parseTypeDecl() throws IOException
+      {
         assert scanner.symbol() == Symbol.typeRW;
 
-        try {
-            return switch (scanner.lookahead(4).symbol()) {
-                case Symbol.arrayRW -> parseArrayTypeDecl();
+        try
+          {
+            return switch (scanner.lookahead(4).symbol())
+              {
+                case arrayRW  -> parseArrayTypeDecl();
                 case recordRW -> parseRecordTypeDecl();
                 case stringRW -> parseStringTypeDecl();
-                default -> {
-                    Position errorPos = scanner.lookahead(4).position();
+                default ->
+                  {
+                    var errorPos = scanner.lookahead(4).position();
                     throw error(errorPos, "Invalid type declaration.");
-                }
-            };
-        } catch (ParserException e) {
+                  }
+              };
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
-            matchCurrentSymbol(); // force scanner past "type"
+            matchCurrentSymbol();   // force scanner past "type"
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * arrayTypeDecl = "type" typeId "=" "array" "[" intConstValue "]"
-     * "of" typeName ";" .
-     * 
-     * @return The parsed array type declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>arrayTypeDecl = "type" typeId "=" "array" "[" intConstValue "]"
+     *                       "of" typeName ";" .</code>
+     *
+     * @return The parsed array type declaration.  Returns an
      *         empty initial declaration if parsing fails.
      */
-    private InitialDecl parseArrayTypeDecl() throws IOException {
-        try {
+    private InitialDecl parseArrayTypeDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.typeRW);
-            var typeID = scanner.token();
+            var typeId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.equals);
             match(Symbol.arrayRW);
             match(Symbol.leftBracket);
-            var constValue = parseIntConstValue();
+            var numElements = parseIntConstValue();
             match(Symbol.rightBracket);
             match(Symbol.ofRW);
             var elemType = parseTypeName();
             match(Symbol.semicolon);
-            var arrayTypeDecl = new ArrayTypeDecl(typeID, elemType, constValue);
-            idTable.add(arrayTypeDecl);
-
-            return arrayTypeDecl;
-        } catch (ParserException e) {
+            var typeDecl = new ArrayTypeDecl(typeId, elemType, numElements);
+            idTable.add(typeDecl);
+            return typeDecl;
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * arrayTypeConstr = "array" "[" intConstValue "]" "of" typeName.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>arrayTypeConstr = "array" "[" intConstValue "]" "of" typeName .</code>
+     *
      * @return The array type defined by this array type constructor.
      *         Returns an empty array type if parsing fails.
      */
-    private ArrayType parseArrayTypeConstr() throws IOException {
-        try {
+    private ArrayType parseArrayTypeConstr() throws IOException
+      {
+        try
+          {
             match(Symbol.arrayRW);
             match(Symbol.leftBracket);
-            var numElements = parseIntConstValue().intValue();
+            var numElements = parseIntConstValue();
             match(Symbol.rightBracket);
             match(Symbol.ofRW);
             var elemType = parseTypeName();
-            var typeName = "array[" + numElements + "] of " + elemType;
-
-            return new ArrayType(typeName, numElements, elemType);
-        } catch (ParserException e) {
+            var nElements = numElements.intValue();
+            var typeName  = "array[" + nElements + "] of " + elemType;
+            return new ArrayType(typeName, nElements, elemType);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.semicolon));
             return new ArrayType("_", 0, Type.UNKNOWN);
-        }
-    }
+          }
+      }
 
     /**
-     * recordTypeDecl = "type" typeId "=" "record" "{" fieldDecls "}" ";".
-     * 
-     * @return The parsed record type declaration. Returns
+     * Parse the following grammar rule:<br>
+     * <code>recordTypeDecl = "type" typeId "=" "record" "{" fieldDecls "}" ";" .</code>
+     *
+     * @return The parsed record type declaration.  Returns
      *         an empty initial declaration if parsing fails.
      */
-    private InitialDecl parseRecordTypeDecl() throws IOException {
-        try {
+    private InitialDecl parseRecordTypeDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.typeRW);
             var typeId = scanner.token();
             match(Symbol.identifier);
@@ -412,71 +503,89 @@ public final class Parser {
             match(Symbol.leftBrace);
 
             List<FieldDecl> fieldDecls;
-            try {
+            try
+              {
                 idTable.openScope(ScopeLevel.RECORD);
                 fieldDecls = parseFieldDecls();
-            } finally {
+              }
+            finally
+              {
                 idTable.closeScope();
-            }
+              }
 
             match(Symbol.rightBrace);
             match(Symbol.semicolon);
 
             var typeDecl = new RecordTypeDecl(typeId, fieldDecls);
             idTable.add(typeDecl);
-
             return typeDecl;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * fieldDecls = { fieldDecl }.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>fieldDecls = { fieldDecl } .</code>
+     *
      * @return A list of field declarations.
      */
-    private List<FieldDecl> parseFieldDecls() throws IOException {
-        var fieldDecls = new ArrayList<FieldDecl>(4);
-        while (scanner.symbol() == Symbol.identifier) {
-            fieldDecls.add(parseFieldDecl());
-        }
+    private List<FieldDecl> parseFieldDecls() throws IOException
+      {
+        var fieldDecls = new ArrayList<FieldDecl>(5);
+        while (scanner.symbol() == Symbol.identifier)
+          {
+            var decl = parseFieldDecl();
+            if (decl != null)
+                fieldDecls.add(decl);
+          }
+
         return fieldDecls;
-    }
+      }
 
     /**
-     * fieldDecl = fieldId ":" typeName ";".
-     * 
-     * @return The parsed field declaration. Returns null if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>fieldDecl = fieldId ":" typeName ";" .</code>
+     *
+     * @return The parsed field declaration.  Returns null if parsing fails.
      */
-    private FieldDecl parseFieldDecl() throws IOException {
-        try {
+    private FieldDecl parseFieldDecl() throws IOException
+      {
+        try
+          {
             var fieldId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.colon);
             var fieldType = parseTypeName();
             match(Symbol.semicolon);
+
             var fieldDecl = new FieldDecl(fieldId, fieldType);
             idTable.add(fieldDecl);
-
             return fieldDecl;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.identifier, Symbol.rightBrace));
             return null;
-        }
-    }
+          }
+      }
 
     /**
-     * stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";".
-     * 
-     * @return The parsed string type declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>stringTypeDecl = "type" typeId "=" "string" "[" intConstValue "]" ";" .</code>
+     *
+     * @return The parsed string type declaration.  Returns an
      *         empty initial declaration if parsing fails.
      */
-    private InitialDecl parseStringTypeDecl() throws IOException {
-        try {
+    private InitialDecl parseStringTypeDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.typeRW);
             var typeId = scanner.token();
             match(Symbol.identifier);
@@ -486,129 +595,156 @@ public final class Parser {
             var capacity = parseIntConstValue();
             match(Symbol.rightBracket);
             match(Symbol.semicolon);
-            var stringTypeDecl = new StringTypeDecl(typeId, capacity);
-            idTable.add(stringTypeDecl);
-
-            return stringTypeDecl;
-        } catch (ParserException e) {
+            var typeDecl = new StringTypeDecl(typeId, capacity);
+            idTable.add(typeDecl);
+            return typeDecl;
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(initialDeclFollowers());
             return EmptyInitialDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * stringTypeConstr = "string" "[" intConstValue "]" .
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>stringTypeConstr = "string" "[" intConstValue "]" .</code>
+     *
      * @return The string type defined by this string type constructor.
      *         Returns an empty string type if parsing fails.
      */
-    private StringType parseStringTypeConstr() throws IOException {
-        try {
+    private StringType parseStringTypeConstr() throws IOException
+      {
+        try
+          {
             match(Symbol.stringRW);
             match(Symbol.leftBracket);
-            var capacity = parseIntConstValue().intValue();
+            var capacity = parseIntConstValue();
             match(Symbol.rightBracket);
-            return new StringType(capacity);
-        } catch (ParserException e) {
+            var nCapacity = capacity.intValue();
+            var typeName  = "string[" + nCapacity + "]";
+            return new StringType(typeName, nCapacity);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.semicolon));
-            return new StringType(0);
-        }
-    }
+            return new StringType("_", 0);
+          }
+      }
 
     /**
-     * typeName = "Integer" | "Boolean" | "Char" | typeId.
-     * 
-     * @return The parsed named type. Returns Type.UNKNOWN if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>typeName = "Integer" | "Boolean" | "Char" | typeId .</code>
+     *
+     * @return The parsed named type.  Returns Type.UNKNOWN if parsing fails.
      */
-    private Type parseTypeName() throws IOException {
-        try {
-            switch (scanner.symbol()) {
-                case IntegerRW -> {
+    private Type parseTypeName() throws IOException
+      {
+        try
+          {
+            switch (scanner.symbol())
+              {
+                case IntegerRW ->
+                  {
                     matchCurrentSymbol();
                     return Type.Integer;
-                }
-                case BooleanRW -> {
+                  }
+                case BooleanRW ->
+                  {
                     matchCurrentSymbol();
                     return Type.Boolean;
-                }
-                case CharRW -> {
+                  }
+                case CharRW ->
+                  {
                     matchCurrentSymbol();
                     return Type.Char;
-                }
-                case identifier -> {
+                  }
+                case identifier ->
+                  {
                     var typeId = scanner.token();
                     matchCurrentSymbol();
                     var decl = idTable.get(typeId.text());
 
-                    if (decl != null) {
-                        if (decl instanceof ArrayTypeDecl
-                                || decl instanceof RecordTypeDecl
-                                || decl instanceof StringTypeDecl) {
+                    if (decl != null)
+                      {
+                        if (  decl instanceof ArrayTypeDecl
+                           || decl instanceof RecordTypeDecl
+                           || decl instanceof StringTypeDecl)
+                          {
                             return decl.type();
-                        } else {
+                          }
+                        else
+                          {
                             var errorMsg = "Identifier \"" + typeId + "\" is not a valid type name.";
                             throw error(typeId.position(), errorMsg);
-                        }
-                    } else {
+                          }
+                      }
+                    else
+                      {
                         var errorMsg = "Identifier \"" + typeId + "\" has not been declared.";
                         throw error(typeId.position(), errorMsg);
-                    }
-                }
+                      }
+                  }
                 default -> throw error("Invalid type name.");
-            }
+              }
 
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
-            recover(EnumSet.of(Symbol.semicolon, Symbol.comma,
-                    Symbol.rightParen, Symbol.leftBrace));
+            recover(EnumSet.of(Symbol.assign,     Symbol.semicolon, Symbol.comma,
+                               Symbol.rightParen, Symbol.leftBrace));
             return Type.UNKNOWN;
-        }
-    }
+          }
+      }
 
     /**
-     * subprogramDecls = { subprogramDecl }.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>subprogramDecls = { subprogramDecl } .</code>
+     *
      * @return The list of subprogram declarations.
      */
-    private List<SubprogramDecl> parseSubprogramDecls() throws IOException {
-        ArrayList<SubprogramDecl> subprogramDecls = new ArrayList<SubprogramDecl>(4);
-        while (scanner.symbol().isSubprogramDeclStarter()) {
-            subprogramDecls.add(parseSubprogramDecl());
-        }
-        return subprogramDecls;
-    }
+    private List<SubprogramDecl> parseSubprogramDecls() throws IOException
+      {
+        var subprogDecls = new ArrayList<SubprogramDecl>(10);
+
+        while (scanner.symbol().isSubprogramDeclStarter())
+            subprogDecls.add(parseSubprogramDecl());
+
+        return subprogDecls;
+      }
 
     /**
-     * subprogramDecl = procedureDecl | functionDecl .
-     * 
-     * @return The parsed subprogram declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>subprogramDecl = procedureDecl | functionDecl .</code>
+     *
+     * @return The parsed subprogram declaration.  Returns an
      *         empty subprogram declaration if parsing fails.
      */
-    private SubprogramDecl parseSubprogramDecl() throws IOException {
-        try {
-            return switch (scanner.symbol()) {
-                case Symbol.procRW -> parseProcedureDecl();
-                case funRW -> parseFunctionDecl();
-                default ->
-                    throw internalError("Invalid subprogram declaration");
-            };
-        } catch (InternalCompilerException e) {
-            recover(subprogDeclFollowers);
-            return EmptySubprogramDecl.instance();
-        }
-    }
+    private SubprogramDecl parseSubprogramDecl() throws IOException
+      {
+        if (scanner.symbol() == Symbol.procRW)
+            return parseProcedureDecl();
+        else if (scanner.symbol() == Symbol.funRW)
+            return parseFunctionDecl();
+        else
+            throw internalError("Invalid subprogram declaration.");
+      }
 
     /**
-     * procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
-     * "{" initialDecls statements "}".
-     * 
-     * @return The parsed procedure declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>procedureDecl = "proc" procId "(" [ parameterDecls ] ")"
+     *                       "{" initialDecls statements "}" .</code>
+     *
+     * @return The parsed procedure declaration.  Returns an
      *         empty subprogram declaration if parsing fails.
      */
-    private SubprogramDecl parseProcedureDecl() throws IOException {
-        try {
+    private SubprogramDecl parseProcedureDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.procRW);
             var procId = scanner.token();
             match(Symbol.identifier);
@@ -617,7 +753,8 @@ public final class Parser {
             idTable.add(procDecl);
             match(Symbol.leftParen);
 
-            try {
+            try
+              {
                 idTable.openScope(ScopeLevel.LOCAL);
 
                 if (scanner.symbol().isParameterDeclStarter())
@@ -630,300 +767,374 @@ public final class Parser {
                 subprogramContext.beginSubprogramDecl(procDecl);
                 procDecl.setStatements(parseStatements());
                 subprogramContext.endSubprogramDecl();
-            } finally {
+              }
+            finally
+              {
                 idTable.closeScope();
-            }
+              }
 
             match(Symbol.rightBrace);
-
             return procDecl;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(subprogDeclFollowers);
             return EmptySubprogramDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
-     * "{" initialDecls statements "}".
-     * 
-     * @return The parsed function declaration. Returns an
+     * Parse the following grammar rule:<br>
+     * <code>functionDecl = "fun" funcId "(" [ parameterDecls ] ")" ":" typeName
+     *                      "{" initialDecls statements "}" .</code>
+     *
+     * @return The parsed function declaration.  Returns an
      *         empty subprogram declaration if parsing fails.
      */
-    private SubprogramDecl parseFunctionDecl() throws IOException {
-        try {
+    private SubprogramDecl parseFunctionDecl() throws IOException
+      {
+        try
+          {
             match(Symbol.funRW);
-            var funcId = scanner.token();
+            var funId = scanner.token();
             match(Symbol.identifier);
 
-            var funcDecl = new FunctionDecl(funcId);
-            idTable.add(funcDecl);
+            var funDecl = new FunctionDecl(funId);
+            idTable.add(funDecl);
             match(Symbol.leftParen);
 
-            try {
+            try
+              {
                 idTable.openScope(ScopeLevel.LOCAL);
 
-                if (scanner.symbol().isParameterDeclStarter()) {
-                    funcDecl.setParameterDecls(parseParameterDecls());
-                }
+                if (scanner.symbol().isParameterDeclStarter())
+                    funDecl.setParameterDecls(parseParameterDecls());
+
                 match(Symbol.rightParen);
                 match(Symbol.colon);
-                funcDecl.setType(parseTypeName());
+                funDecl.setType(parseTypeName());
                 match(Symbol.leftBrace);
-                funcDecl.setInitialDecls(parseInitialDecls());
-                subprogramContext.beginSubprogramDecl(funcDecl);
-                funcDecl.setStatements(parseStatements());
+
+                funDecl.setInitialDecls(parseInitialDecls());
+
+                subprogramContext.beginSubprogramDecl(funDecl);
+                funDecl.setStatements(parseStatements());
                 subprogramContext.endSubprogramDecl();
-
-            } finally {
+              }
+            finally
+              {
                 idTable.closeScope();
-            }
-            match(Symbol.rightBrace);
+              }
 
-            return funcDecl;
-        } catch (ParserException e) {
+            match(Symbol.rightBrace);
+            return funDecl;
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(subprogDeclFollowers);
             return EmptySubprogramDecl.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * parameterDecls = parameterDecl { "," parameterDecl }.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>parameterDecls = parameterDecl { "," parameterDecl } .</code>
+     *
      * @return A list of parameter declarations.
      */
-    private List<ParameterDecl> parseParameterDecls() throws IOException {
-        ArrayList<ParameterDecl> parameterDecls = new ArrayList<ParameterDecl>(4);
-        parameterDecls.add(parseParameterDecl());
-        while (scanner.symbol() == Symbol.comma) {
+    private List<ParameterDecl> parseParameterDecls() throws IOException
+      {
+        var paramDecls = new ArrayList<ParameterDecl>(10);
+        var paramDecl  = parseParameterDecl();
+        if (paramDecl != null)
+            paramDecls.add(paramDecl);
+
+        while (scanner.symbol() == Symbol.comma)
+          {
             matchCurrentSymbol();
-            parameterDecls.add(parseParameterDecl());
-        }
-        return parameterDecls;
-    }
+            paramDecl  = parseParameterDecl();
+            if (paramDecl != null)
+                paramDecls.add(paramDecl);
+          }
+
+        return paramDecls;
+      }
 
     /**
-     * parameterDecl = [ "var" ] paramId ":" typeName.
-     * 
-     * @return The parsed parameter declaration. Returns null if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>parameterDecl = [ "var" ] paramId ":" typeName .</code>
+     *
+     * @return The parsed parameter declaration.  Returns null if parsing fails.
      */
-    private ParameterDecl parseParameterDecl() throws IOException {
-        try {
-            boolean isVarParam = false;
-            if (scanner.symbol() == Symbol.varRW) {
-                matchCurrentSymbol();
+    private ParameterDecl parseParameterDecl() throws IOException
+      {
+        try
+          {
+            var isVarParam = false;
+            if (scanner.symbol() == Symbol.varRW)
+              {
                 isVarParam = true;
-            }
+                matchCurrentSymbol();
+              }
+
             var paramId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.colon);
-            var paramType = parseTypeName();
-            var parameterDecl = new ParameterDecl(paramId, paramType, isVarParam);
-            idTable.add(parameterDecl);
 
-            return parameterDecl;
-        } catch (ParserException e) {
+            var paramType = parseTypeName();
+            assert idTable .scopeLevel() == ScopeLevel.LOCAL;
+
+            // arrays are always passed by reference
+            if (paramType instanceof ArrayType)
+                isVarParam = true;
+
+            var paramDecl = new ParameterDecl(paramId, paramType, isVarParam);
+            idTable.add(paramDecl);
+            return paramDecl;
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.comma, Symbol.rightParen));
             return null;
-        }
-    }
+          }
+      }
 
     /**
-     * statements = { statement }.
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>statements = { statement } .</code>
+     *
      * @return A list of statements.
      */
-    private List<Statement> parseStatements() throws IOException {
-        ArrayList<Statement> statements = new ArrayList<Statement>(4);
-        while (scanner.symbol().isStmtStarter()) {
+    private List<Statement> parseStatements() throws IOException
+      {
+        var statements = new ArrayList<Statement>(20);
+
+        while (scanner.symbol().isStmtStarter())
             statements.add(parseStatement());
-        }
 
         return statements;
-    }
+      }
 
     /**
-     * statement = assignmentStmt | procedureCallStmt
-     * | compoundStmt | ifStmt
-     * | loopStmt | forLoopStmt | exitStmt | readStmt
-     * | writeStmt | writelnStmt | returnStmt .
-     * 
-     * @return The parsed statement. Returns an empty statement if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>statement = assignmentStmt | procedureCallStmt | compoundStmt | ifStmt
+     *                 | loopStmt       | forLoopStmt       | exitStmt     | readStmt
+     *                 | writeStmt      | writelnStmt       | returnStmt .</code>
+     *
+     * @return The parsed statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseStatement() throws IOException {
-        try {
-            if (scanner.symbol() == Symbol.identifier) {
+    private Statement parseStatement() throws IOException
+      {
+        try
+          {
+            if (scanner.symbol() == Symbol.identifier)
+              {
                 // Handle identifiers based on how they are declared,
                 // or use the lookahead symbol if not declared.
                 var idStr = scanner.text();
-                var decl = idTable.get(idStr);
+                var decl  = idTable.get(idStr);
 
-                if (decl != null) {
+                if (decl != null)
+                  {
                     if (decl instanceof VariableDecl)
                         return parseAssignmentStmt();
                     else if (decl instanceof ProcedureDecl)
                         return parseProcedureCallStmt();
                     else
                         throw error("Identifier \"" + idStr + "\" cannot start a statement.");
-                } else {
-                    if (scanner.lookahead(2).symbol() == Symbol.leftParen) {
+                  }
+                else
+                  {
+                    // make parsing decision using lookahead symbol
+                    if (scanner.lookahead(2).symbol() == Symbol.leftParen)
                         return parseProcedureCallStmt();
-                    } else {
-                        throw error("Identifier \"" + idStr
-                                + "\" has not been declared.");
-                    }
-                }
-            } else {
-                return switch (scanner.symbol()) {
-                    case Symbol.leftBrace -> parseCompoundStmt();
-                    case Symbol.ifRW -> parseIfStmt();
-                    case Symbol.whileRW -> parseLoopStmt();
-                    case Symbol.loopRW -> parseLoopStmt();
-                    case Symbol.forRW -> parseForLoopStmt();
-                    case Symbol.exitRW -> parseExitStmt();
-                    case Symbol.readRW -> parseReadStmt();
-                    case Symbol.writeRW -> parseWriteStmt();
-                    case Symbol.writelnRW -> parseWritelnStmt();
-                    case Symbol.returnRW -> parseReturnStmt();
-                    case Symbol.identifier -> parseAssignmentStmt();
+                    else
+                        throw error("Identifier \"" + idStr + "\" has not been declared.");
+                  }
+              }
+            else
+              {
+                return switch (scanner.symbol())
+                  {
+                    case leftBrace -> parseCompoundStmt();
+                    case ifRW      -> parseIfStmt();
+                    case whileRW   -> parseLoopStmt();
+                    case loopRW    -> parseLoopStmt();
+                    case forRW     -> parseForLoopStmt();
+                    case exitRW    -> parseExitStmt();
+                    case readRW    -> parseReadStmt();
+                    case writeRW   -> parseWriteStmt();
+                    case writelnRW -> parseWritelnStmt();
+                    case returnRW  -> parseReturnStmt();
                     default -> throw internalError(scanner.token()
-                            + " cannot start a statement.");
-                };
-            }
-        } catch (
-
-        ParserException e) {
+                                   + " cannot start a statement.");
+                  };
+              }
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
 
             // Error recovery here is complicated for identifiers since they can both
-            // start a statement and appear elsewhere in the statement. (Consider,
+            // start a statement and appear elsewhere in the statement.  (Consider,
             // for example, an assignment statement or a procedure call statement.)
             // Since the most common error is to declare or reference an identifier
             // incorrectly, we will assume that this is the case and advance to the
             // end of the current statement before performing error recovery.
             scanner.advanceTo(EnumSet.of(Symbol.semicolon, Symbol.rightBrace));
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * assignmentStmt = variable ":=" expression ";".
-     * 
-     * @return The parsed assignment statement. Returns
+     * Parse the following grammar rule:<br>
+     * <code>assignmentStmt = variable ":=" expression ";" .</code>
+     *
+     * @return The parsed assignment statement.  Returns
      *         an empty statement if parsing fails.
      */
-    private Statement parseAssignmentStmt() throws IOException {
-        try {
-            Variable variable = null;
+    private Statement parseAssignmentStmt() throws IOException
+      {
+        try
+          {
+            var variable = parseVariable();
             var assignPosition = scanner.position();
-            variable = parseVariable();
-            try {
-                match(Symbol.assign);
-            } catch (ParserException e) {
-                if (scanner.symbol() == Symbol.equals) {
-                    errorHandler.reportError(e);
-                    matchCurrentSymbol();
-                } else {
-                    throw e;
-                }
-            }
-            var expr = parseExpression();
-            match(Symbol.semicolon);
 
-            var assignmentStmt = new AssignmentStmt(variable, expr, assignPosition);
-            return assignmentStmt;
-        } catch (ParserException e) {
+            // match(Symbol.assign);
+            try
+              {
+                match(Symbol.assign);
+              }
+            catch (ParserException e)
+              {
+                if (scanner.symbol() == Symbol.equals)
+                  {
+                    errorHandler.reportError(e);
+                    matchCurrentSymbol();   // treat "=" as ":=" in this context
+                  }
+                else
+                    throw e;
+              }
+
+            Expression expr = parseExpression();
+            match(Symbol.semicolon);
+            return new AssignmentStmt(variable, expr, assignPosition);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * compoundStmt = "{" statements "}" .
-     * 
-     * @return The parsed compound statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>compoundStmt = "{" statements "}" .<\code>
+     *
+     * @return The parsed compound statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseCompoundStmt() throws IOException {
-        try {
+    private Statement parseCompoundStmt() throws IOException
+      {
+        try
+          {
             match(Symbol.leftBrace);
             var statements = parseStatements();
             match(Symbol.rightBrace);
 
             return new CompoundStmt(statements);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * ifStmt = "if" booleanExpr "then" statement [ "else" statement ].
-     * 
-     * @return The parsed if statement. Returns an empty statement if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>ifStmt = "if" booleanExpr "then" statement  [ "else" statement ] .</code>
+     *
+     * @return The parsed if statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseIfStmt() throws IOException {
-        try {
+    private Statement parseIfStmt() throws IOException
+      {
+        try
+          {
             match(Symbol.ifRW);
             var booleanExpr = parseExpression();
             match(Symbol.thenRW);
+
             var thenStmt = parseStatement();
+
             Statement elseStmt = null;
-            if (scanner.symbol() == Symbol.elseRW) {
+            if (scanner.symbol() == Symbol.elseRW)
+              {
                 matchCurrentSymbol();
                 elseStmt = parseStatement();
-            }
+              }
 
             return new IfStmt(booleanExpr, thenStmt, elseStmt);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * loopStmt = [ "while" booleanExpr ] "loop" statement.
-     * 
-     * @return The parsed loop statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>loopStmt = [ "while" booleanExpr ] "loop" statement .</code>
+     *
+     * @return The parsed loop statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseLoopStmt() throws IOException {
-        try {
-            LoopStmt loopStmt;
-            if (scanner.symbol() == Symbol.whileRW) {
+    private Statement parseLoopStmt() throws IOException
+      {
+        try
+          {
+            Expression whileExpr = null;
+
+            if (scanner.symbol() == Symbol.whileRW)
+              {
                 matchCurrentSymbol();
-                loopStmt = new LoopStmt(parseExpression());
-            } else {
-                loopStmt = new LoopStmt();
-            }
+                whileExpr = parseExpression();
+
+                if (whileExpr instanceof EmptyExpression)
+                    whileExpr = null;
+              }
+
             match(Symbol.loopRW);
+            var loopStmt = whileExpr == null ? new LoopStmt() : new LoopStmt(whileExpr);
             loopContext.beginLoop(loopStmt);
             loopStmt.setStatement(parseStatement());
             loopContext.endLoop();
             return loopStmt;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement.
-     * 
-     * @return The parsed for-loop statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>forLoopStmt = "for" varId "in" intExpr ".." intExpr "loop" statement .</code>
+     *
+     * @return The parsed for-loop statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseForLoopStmt() throws IOException {
-        try {
+    private Statement parseForLoopStmt() throws IOException
+      {
+        try
+          {
             // create a new scope for the loop variable
             idTable.openScope(ScopeLevel.LOCAL);
 
@@ -938,18 +1149,18 @@ public final class Parser {
             // Create an implicit variable declaration for the loop variable and add
             // it to the list of initial declarations for the subprogram declaration.
             var varDecl = new VarDecl(List.of(loopId), Type.Integer,
-                    EmptyInitializer.instance(), ScopeLevel.LOCAL);
+                                      EmptyInitializer.instance(), ScopeLevel.LOCAL);
             var subprogDecl = subprogramContext.subprogramDecl();
             assert subprogDecl != null;
             subprogDecl.initialDecls().add(varDecl);
 
             // Add the corresponding single variable declaration to the identifier tables.
-            var loopSvDecl = varDecl.singleVarDecls().getLast();
+            var loopSvDecl = varDecl.singleVarDecls().get(0);
             idTable.add(loopSvDecl);
 
             // Create loop variable to add to AST class ForLoopStmt
             var loopVariable = new Variable(loopSvDecl, loopId.position(),
-                    Collections.emptyList());
+                                            Collections.emptyList());
             match(Symbol.loopRW);
             var forLoopStmt = new ForLoopStmt(loopVariable, rangeStart, rangeEnd);
             loopContext.beginLoop(forLoopStmt);
@@ -957,111 +1168,134 @@ public final class Parser {
             loopContext.endLoop();
 
             return forLoopStmt;
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        } finally {
+          }
+        finally
+          {
             idTable.closeScope();
-        }
-    }
+          }
+      }
 
     /**
-     * exitStmt = "exit" [ "when" booleanExpr ] ";".
-     * 
-     * @return The parsed exit statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>exitStmt = "exit" [ "when" booleanExpr ] ";" .</code>
+     *
+     * @return The parsed exit statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseExitStmt() throws IOException {
-        try {
-            var errorPos = scanner.position();
+    private Statement parseExitStmt() throws IOException
+      {
+        try
+          {
+            // save position for error reporting
+            var exitPosition = scanner.position();
             match(Symbol.exitRW);
+
             Expression whenExpr = null;
-            if (scanner.symbol() == Symbol.whenRW) {
+            if (scanner.symbol() == Symbol.whenRW)
+              {
                 matchCurrentSymbol();
                 whenExpr = parseExpression();
-            }
+              }
+
             var loopStmt = loopContext.loopStmt();
-            if (loopStmt == null) {
-                var errorMsg = "Exit statement is not nested within a loop";
-                throw error(errorPos, errorMsg);
-            }
+            if (loopStmt == null)
+              {
+                var errorMsg = "Exit statement is not nested within a loop.";
+                throw error(exitPosition, errorMsg);
+              }
+
             match(Symbol.semicolon);
             return new ExitStmt(whenExpr, loopStmt);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * readStmt = "read" variable ";" .
-     * 
-     * @return The parsed read statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>readStmt = "read" variable ";" .</code>
+     *
+     * @return The parsed read statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseReadStmt() throws IOException {
-        try {
+    private Statement parseReadStmt() throws IOException
+      {
+        try
+          {
             match(Symbol.readRW);
             var variable = parseVariable();
             match(Symbol.semicolon);
-
             return new ReadStmt(variable);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * writeStmt = "write" expressions ";".
-     * 
-     * @return The parsed write statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>writeStmt = "write" expressions ";" .</code>
+     *
+     * @return The parsed write statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseWriteStmt() throws IOException {
-        try {
+    private Statement parseWriteStmt() throws IOException
+      {
+        try
+          {
             match(Symbol.writeRW);
             var expressions = parseExpressions();
             match(Symbol.semicolon);
-
-            return new OutputStmt(expressions, false);
-        } catch (ParserException e) {
+            return new OutputStmt(expressions);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
-
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * expressions = expression [ "," expression ] .
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>expressions = expression [ "," expression ] .</code>
+     *
      * @return A list of expressions.
-     * @throws IOException
      */
-    private List<Expression> parseExpressions() throws IOException {
-        ArrayList<Expression> expressions = new ArrayList<Expression>(4);
+    private List<Expression> parseExpressions() throws IOException
+      {
+        var expressions = new ArrayList<Expression>(5);
         expressions.add(parseExpression());
-        while (scanner.symbol() == Symbol.comma) {
+
+        while (scanner.symbol() == Symbol.comma)
+          {
             matchCurrentSymbol();
             expressions.add(parseExpression());
-        }
+          }
+
         return expressions;
-    }
+      }
 
     /**
-     * writelnStmt = "writeln" [ expressions ] ";".
-     * 
-     * @return The parsed writeln statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>writelnStmt = "writeln" [ expressions ] ";" .</code>
+     *
+     * @return The parsed writeln statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseWritelnStmt() throws IOException {
-        try {
+    private Statement parseWritelnStmt() throws IOException
+      {
+        try
+          {
             match(Symbol.writelnRW);
 
             List<Expression> expressions;
@@ -1071,65 +1305,84 @@ public final class Parser {
                 expressions = Collections.emptyList();
 
             match(Symbol.semicolon);
+
             return new OutputStmt(expressions, true);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * procedureCallStmt = procId "(" [ actualParameters ] ")" ";".
-     * actualParameters = expressions.
-     * 
-     * @return The parsed procedure call statement. Returns
+     * Parse the following grammar rules:<br>
+     * <code>procedureCallStmt = procId "(" [ actualParameters ] ")" ";" .<br>
+     *       actualParameters = expressions .</code>
+     *
+     * @return The parsed procedure call statement.  Returns
      *         an empty statement if parsing fails.
      */
-    private Statement parseProcedureCallStmt() throws IOException {
-        try {
+    private Statement parseProcedureCallStmt() throws IOException
+      {
+        try
+          {
             var procId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.leftParen);
-            ArrayList<Expression> actualParams = new ArrayList<Expression>(4);
-            if (scanner.symbol().isExprStarter()) {
-                actualParams.addAll(parseExpressions());
-            }
+
+            List<Expression> actualParams;
+            if (scanner.symbol().isExprStarter())
+                actualParams = parseExpressions();
+            else
+                actualParams = Collections.emptyList();
+
             match(Symbol.rightParen);
             match(Symbol.semicolon);
 
             return new ProcedureCallStmt(procId, actualParams);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * returnStmt = "return" [ expression ] ";".
-     * 
-     * @return The parsed return statement. Returns an empty statement if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>returnStmt = "return" [ expression ] ";" .</code>
+     *
+     * @return The parsed return statement.  Returns an empty statement if parsing fails.
      */
-    private Statement parseReturnStmt() throws IOException {
-        try {
+    private Statement parseReturnStmt() throws IOException
+      {
+        try
+          {
+            // save position for error reporting
             var returnPosition = scanner.position();
             match(Symbol.returnRW);
-            Expression returnExpr = null;
-            if (scanner.symbol() != Symbol.semicolon) {
-                returnExpr = parseExpression();
-            }
-            match(Symbol.semicolon);
-            var subprogramDecl = subprogramContext.subprogramDecl();
 
-            return new ReturnStmt(subprogramDecl, returnExpr, returnPosition);
-        } catch (ParserException e) {
+            Expression returnExpr = null;
+            if (scanner.symbol().isExprStarter())
+                returnExpr = parseExpression();
+
+            match(Symbol.semicolon);
+
+            var subprogDecl = subprogramContext.subprogramDecl();
+            assert subprogDecl != null : "null reference to subprogram declaration";
+
+            return new ReturnStmt(subprogDecl, returnExpr, returnPosition);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(stmtFollowers);
             return EmptyStatement.instance();
-        }
-    }
+          }
+      }
 
     /**
      * Parse the following grammar rules:<br>
@@ -1138,313 +1391,376 @@ public final class Parser {
      *       fieldExpr = "." fieldId .</code>
      * <br>
      * This helper method provides common logic for methods parseVariable() and
-     * parseVariableExpr(). The method does not handle any ParserExceptions but
-     * throws them back to the calling method where they can be handled
-     * appropriately.
+     * parseVariableExpr().  The method does not handle any ParserExceptions but
+     * throws them back to the calling method where they can be handled appropriately.
      *
      * @return The parsed variable.
      * @throws ParserException if parsing fails.
      * @see #parseVariable()
      * @see #parseVariableExpr()
      */
-    private Variable parseVariableCommon() throws IOException, ParserException {
+    private Variable parseVariableCommon() throws IOException, ParserException
+      {
         var idToken = scanner.token();
         match(Symbol.identifier);
         var decl = idTable.get(idToken.text());
 
-        if (decl == null) {
+        if (decl == null)
+          {
             var errorMsg = "Identifier \"" + idToken + "\" has not been declared.";
             throw error(idToken.position(), errorMsg);
-        } else if (!(decl instanceof VariableDecl)) {
+          }
+        else if (!(decl instanceof VariableDecl))
+          {
             var errorMsg = "Identifier \"" + idToken + "\" is not a variable.";
             throw error(idToken.position(), errorMsg);
-        }
+          }
 
-        var variableDecl = (VariableDecl) decl;
+        var variableDecl  = (VariableDecl) decl;
 
         var selectorExprs = new ArrayList<Expression>(5);
 
-        while (scanner.symbol().isSelectorStarter()) {
-            if (scanner.symbol() == Symbol.leftBracket) {
+        while (scanner.symbol().isSelectorStarter())
+          {
+            if (scanner.symbol() == Symbol.leftBracket)
+              {
                 // parse index expression
                 match(Symbol.leftBracket);
                 selectorExprs.add(parseExpression());
                 match(Symbol.rightBracket);
-            } else if (scanner.symbol() == Symbol.dot) {
+              }
+            else if (scanner.symbol() == Symbol.dot)
+              {
                 // parse field expression
                 match(Symbol.dot);
                 var fieldId = scanner.token();
                 match(Symbol.identifier);
                 selectorExprs.add(new FieldExpr(fieldId));
-            }
-        }
+              }
+          }
 
         return new Variable(variableDecl, idToken.position(), selectorExprs);
-    }
+      }
 
     /**
-     * variable = ( varId | paramId ) { indexExpr | fieldExpr }.
-     * 
-     * @return The parsed variable. Returns null if parsing fails.
+     * Parse the following grammar rule:<br>
+     * <code>variable = ( varId | paramId ) { indexExpr | fieldExpr } .</code>
+     *
+     * @return The parsed variable.  Returns null if parsing fails.
      */
-    private Variable parseVariable() throws IOException {
-        try {
+    private Variable parseVariable() throws IOException
+      {
+        try
+          {
             return parseVariableCommon();
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(EnumSet.of(Symbol.assign, Symbol.semicolon));
             return null;
-        }
-    }
+          }
+      }
 
     /**
-     * expression = relation { logicalOp relation } .
-     * logicalOp = "and" | "or"
-     * 
+     * Parse the following grammar rules:<br>
+     * <code>expression = relation { logicalOp relation } .<br>
+     *       logicalOp = "and" | "or" . </code>
+     *
      * @return The parsed expression.
      */
-    private Expression parseExpression() throws IOException {
+    private Expression parseExpression() throws IOException
+      {
         var expr = parseRelation();
 
-        while (scanner.symbol().isLogicalOperator()) {
+        while (scanner.symbol().isLogicalOperator())
+          {
             var operator = scanner.token();
             matchCurrentSymbol();
             expr = new LogicalExpr(expr, operator, parseRelation());
-        }
+          }
+
         return expr;
-    }
+      }
 
     /**
-     * relation = simpleExpr [ relationalOp simpleExpr ].
-     * relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=".
-     * 
+     * Parse the following grammar rule:<br>
+     * <code>relation = simpleExpr [ relationalOp simpleExpr ] .<br>
+     *   relationalOp = "=" | "!=" | "&lt;" | "&lt;=" | "&gt;" | "&gt;=" .</code>
+     *
      * @return The parsed relational expression.
      */
-    private Expression parseRelation() throws IOException {
-        var relation = parseSimpleExpr();
-        while (scanner.symbol().isRelationalOperator()) {
+    private Expression parseRelation() throws IOException
+      {
+        var expr = parseSimpleExpr();
+
+        if (scanner.symbol().isRelationalOperator())
+          {
             var operator = scanner.token();
             matchCurrentSymbol();
-            var rightOperand = parseSimpleExpr();
-            relation = new RelationalExpr(relation, operator, rightOperand);
-        }
-        return relation;
-    }
+            expr = new RelationalExpr(expr, operator, parseSimpleExpr());
+          }
+
+        return expr;
+      }
 
     /**
-     * simpleExpr = [ signOp ] term { addingOp term }.
-     * signOp = "+" | "-".
-     * addingOp = "+" | "-" | "|" | "^".
-     * 
+     * Parse the following grammar rules:<br>
+     * <code>simpleExpr = [ signOp ] term { addingOp term } .<br>
+     *       signOp = "+" | "-" .<br>
+     *       addingOp  = "+" | "-" | "|" | "^" .</code>
+     *
      * @return The parsed simple expression.
      */
-    private Expression parseSimpleExpr() throws IOException {
-        Token operator = null;
-        if (scanner.symbol().isSignOperator()) {
-            operator = scanner.token();
+    private Expression parseSimpleExpr() throws IOException
+      {
+        Expression expr;
+
+        if (scanner.symbol().isSignOperator())
+          {
+            Token operator = scanner.token();
             matchCurrentSymbol();
-        }
-        Expression simpleExpr;
-        if (operator != null) {
-            if (operator.symbol() == Symbol.minus) {
-                simpleExpr = new NegationExpr(operator, parseTerm());
-            } else {
-                simpleExpr = parseTerm();
-            }
-        } else {
-            simpleExpr = parseTerm();
-        }
-        while (scanner.symbol().isAddingOperator()) {
-            var subOperator = scanner.token();
+
+            expr = parseTerm();
+
+            // We really need to worry only about a minus sign here.
+            if (operator.symbol() == Symbol.minus)
+                expr = new NegationExpr(operator, expr);
+          }
+        else
+            expr = parseTerm();
+
+        while (scanner.symbol().isAddingOperator())
+          {
+            Token operator = scanner.token();
             matchCurrentSymbol();
-            var rightOperand = parseTerm();
-            simpleExpr = new AddingExpr(simpleExpr, subOperator, rightOperand);
-        }
-        return simpleExpr;
-    }
+            expr = new AddingExpr(expr, operator, parseTerm());
+          }
+
+        return expr;
+      }
 
     /**
-     * term = factor { multiplyingOp factor }.
-     * multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .
-     * 
+     * Parse the following grammar rules:<br>
+     * <code>term = factor { multiplyingOp factor } .<br>
+     *       multiplyingOp = "*" | "/" | "mod" | "&" | "<<" | ">>" .</code>
+     *
      * @return The parsed term expression.
      */
-    private Expression parseTerm() throws IOException {
-        var term = parseFactor();
-        while (scanner.symbol().isMultiplyingOperator()) {
-            var operator = scanner.token();
+    private Expression parseTerm() throws IOException
+      {
+        var expr = parseFactor();
+
+        while (scanner.symbol().isMultiplyingOperator())
+          {
+            Token operator = scanner.token();
             matchCurrentSymbol();
-            var rightOperand = parseFactor();
-            term = new MultiplyingExpr(term, operator, rightOperand);
-        }
-        return term;
-    }
+            expr = new MultiplyingExpr(expr, operator, parseFactor());
+          }
+
+        return expr;
+      }
 
     /**
-     * factor = ("not" | "~") factor | literal | constId | variableExpr
-     * | functionCallExpr | "(" expression ")".
-     * 
-     * @return The parsed factor expression. Returns an empty expression if parsing
-     *         fails.
+     * Parse the following grammar rule:<br>
+     * <code>factor = ("not" | "~") factor | literal | constId | variableExpr
+     *              | functionCallExpr | "(" expression ")" .</code>
+     *
+     * @return The parsed factor expression.  Returns an empty expression if parsing fails.
      */
-    private Expression parseFactor() throws IOException {
-        try {
+    private Expression parseFactor() throws IOException
+      {
+        try
+          {
             var symbol = scanner.symbol();
 
-            if (symbol == Symbol.notRW || symbol == Symbol.bitwiseNot) {
+            if (symbol == Symbol.notRW || symbol == Symbol.bitwiseNot)
+              {
                 var operator = scanner.token();
                 matchCurrentSymbol();
                 return new NotExpr(operator, parseFactor());
-            } else if (symbol.isLiteral()) {
+              }
+            else if (symbol.isLiteral())
+              {
                 // Handle constant literals separately from constant identifiers.
                 return parseConstValue();
-            } else if (symbol == Symbol.identifier) {
+              }
+            else if (symbol == Symbol.identifier)
+              {
                 // Three possible cases: a declared constant, a variable
-                // expression, or a function call expression. Use lookahead
+                // expression, or a function call expression.  Use lookahead
                 // tokens and declaration to determine correct parsing action.
                 var idStr = scanner.text();
-                var decl = idTable.get(idStr);
+                var decl  = idTable.get(idStr);
 
-                if (decl != null) {
+                if (decl != null)
+                  {
                     if (decl instanceof ConstDecl)
                         return parseConstValue();
                     else if (decl instanceof VariableDecl)
                         return parseVariableExpr();
                     else if (decl instanceof FunctionDecl)
                         return parseFunctionCallExpr();
-                    else {
+                    else
+                      {
                         var errorPos = scanner.position();
                         var errorMsg = "Identifier \"" + idStr
-                                + "\" is not valid as an expression.";
+                                     + "\" is not valid as an expression.";
 
                         // special recovery when procedure call is used as a function call
-                        if (decl instanceof ProcedureDecl) {
+                        if (decl instanceof ProcedureDecl)
+                          {
                             scanner.advance();
-                            if (scanner.symbol() == Symbol.leftParen) {
+                            if (scanner.symbol() == Symbol.leftParen)
+                              {
                                 scanner.advanceTo(Symbol.rightParen);
-                                scanner.advance(); // advance past the right paren
-                            }
-                        }
+                                scanner.advance();   // advance past the right paren
+                              }
+                          }
 
                         throw error(errorPos, errorMsg);
-                    }
-                } else {
+                      }
+                  }
+                else
+                  {
                     // Make parsing decision using an additional lookahead symbol.
                     if (scanner.lookahead(2).symbol() == Symbol.leftParen)
                         return parseFunctionCallExpr();
                     else
                         throw error("Identifier \"" + scanner.token()
-                                + "\" has not been declared.");
-                }
-            } else if (symbol == Symbol.leftParen) {
+                                  + "\" has not been declared.");
+                  }
+              }
+            else if (symbol == Symbol.leftParen)
+              {
                 matchCurrentSymbol();
-                var expr = parseExpression(); // save expression
+                var expr = parseExpression();   // save expression
                 match(Symbol.rightParen);
                 return expr;
-            } else
+              }
+            else
                 throw error("Invalid expression.");
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(factorFollowers);
             return EmptyExpression.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * handle minus sign, negative constant isn't legal
-     * 
-     * constValue = ( [ "-" ] literal ) | constId.
-     * 
-     * @return The parsed constant value. Returns
+     * Parse the following grammar rule:<br>
+     * <code>constValue = ( [ "-" ] literal ) | constId .</code>
+     *
+     * @return The parsed constant value.  Returns
      *         an empty expression if parsing fails.
      */
-    private Expression parseConstValue() throws IOException {
-        try {
-            if (scanner.symbol() == Symbol.identifier) {
-                var text = scanner.text();
-                var constId = scanner.token();
-                var constdecl = idTable.get(text);
-                var errorPos = scanner.position();
-                match(Symbol.identifier);
-                if (constdecl instanceof ConstDecl) {
-                    return new ConstValue(constId, (ConstDecl) constdecl);
-                } else {
-                    var errorMsg = "Identifier \"" + text + "\" is not a constant.";
-                    throw error(errorPos, errorMsg);
-                }
-            } else {
-                Expression constValue;
-                Token token;
-                if (scanner.symbol() == Symbol.minus) {
-                    if (scanner.symbol() == Symbol.identifier) {
-                        var errorMsg = "Identifier can not follow \"-\".";
-                        var errorPos = scanner.position();
-                        throw error(errorPos, errorMsg);
-                    }
-                    var position = scanner.position();
-                    matchCurrentSymbol();
-                    token = parseLiteral();
-                    var text = "-" + token.text();
-                    token = new Token(Symbol.intLiteral,
-                            position, text);
-                } else {
-                    token = parseLiteral();
-                }
-                constValue = new ConstValue(token);
-                return constValue;
-            }
-        } catch (ParserException e) {
+    private Expression parseConstValue() throws IOException
+      {
+        try
+          {
+            if (scanner.symbol().isLiteral())
+                return new ConstValue(parseLiteral());
+            else if (scanner.symbol() == Symbol.minus
+                && scanner.lookahead(2).symbol() == Symbol.intLiteral)
+              {
+                // handle negative integer literals as a special case
+                match(Symbol.minus);
+                var intToken = scanner.token();
+                match(Symbol.intLiteral);
+                intToken.setText("-" + intToken.text());
+                return new ConstValue(intToken);
+              }
+            else if (scanner.symbol() == Symbol.identifier)
+              {
+                var constId    = scanner.token();
+                var idPosition = constId.position();
+                matchCurrentSymbol();
+                var decl = idTable.get(constId.text());
+
+                if (decl == null)
+                  {
+                    var errorMsg = "Identifier \"" + constId + "\" has not been declared.";
+                    throw error(idPosition, errorMsg);
+                  }
+                else if (decl instanceof ConstDecl constDecl)
+                    return new ConstValue(constId, constDecl);
+                else
+                  {
+                    var errorMsg = "Identifier \"" + constId
+                                 + "\" was not declared as a constant.";
+                    throw error(idPosition, errorMsg);
+                  }
+              }
+            else
+                throw error("Invalid constant.");
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
-            recover(EnumSet.of(Symbol.semicolon, Symbol.comma, Symbol.rightBracket,
-                    Symbol.rightParen, Symbol.equals, Symbol.notEqual, Symbol.lessThan,
-                    Symbol.lessOrEqual, Symbol.greaterThan, Symbol.greaterOrEqual, Symbol.plus,
-                    Symbol.minus, Symbol.times, Symbol.divide,
-                    Symbol.modRW, Symbol.andRW, Symbol.orRW));
+            recover(EnumSet.of(Symbol.semicolon,  Symbol.comma,
+                               Symbol.rightBrace, Symbol.rightBracket));
+
             return EmptyExpression.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * variableExpr = variable.
-     * 
-     * @return The parsed variable expression. Returns
+     * Parse the following grammar rule:<br>
+     * <code>variableExpr = variable .</code>
+     *
+     * @return The parsed variable expression.  Returns
      *         an empty expression if parsing fails.
      */
-    private Expression parseVariableExpr() throws IOException {
-        try {
+    private Expression parseVariableExpr() throws IOException
+      {
+        try
+          {
             var variable = parseVariableCommon();
             return new VariableExpr(variable);
-        } catch (ParserException e) {
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(factorFollowers);
             return EmptyExpression.instance();
-        }
-    }
+          }
+      }
 
     /**
-     * functionCallExpr = funcId "(" [ actualParameters ] ")".
-     * actualParameters = expressions.
-     * 
-     * @return The parsed function call expression. Returns
+     * Parse the following grammar rules:<br>
+     * <code>functionCallExpr = funcId "(" [ actualParameters ] ")" .<br>
+     *       actualParameters = expressions .</code>
+     *
+     * @return The parsed function call expression.  Returns
      *         an empty expression if parsing fails.
      */
-    private Expression parseFunctionCallExpr() throws IOException {
-        try {
-            var funId = scanner.token();
+    private Expression parseFunctionCallExpr() throws IOException
+      {
+        try
+          {
+            var funcId = scanner.token();
             match(Symbol.identifier);
             match(Symbol.leftParen);
-            var actualParams = new ArrayList<Expression>(4);
-            if (scanner.symbol().isExprStarter()) {
-                actualParams.addAll(parseExpressions());
-            }
+
+            List<Expression> actualParams;
+            if (scanner.symbol().isExprStarter())
+                actualParams = parseExpressions();
+            else
+                actualParams = Collections.emptyList();
+
             match(Symbol.rightParen);
-            return new FunctionCallExpr(funId, actualParams);
-        } catch (ParserException e) {
+
+            return new FunctionCallExpr(funcId, actualParams);
+          }
+        catch (ParserException e)
+          {
             errorHandler.reportError(e);
             recover(factorFollowers);
             return EmptyExpression.instance();
-        }
-    }
+          }
+      }
 
     // Utility parsing methods
 
@@ -1452,53 +1768,83 @@ public final class Parser {
      * Wrapper around method parseConstValue() that always
      * returns a valid constant integer value.
      */
-    private ConstValue parseIntConstValue() throws IOException {
+    private ConstValue parseIntConstValue() throws IOException
+      {
         var token = new Token(Symbol.intLiteral, new Position(), "1");
         var defaultConstValue = new ConstValue(token);
 
         var intConstValue = parseConstValue();
 
         if (intConstValue instanceof EmptyExpression)
-            intConstValue = defaultConstValue; // Error has already been reported.
-        else if (intConstValue.type() != Type.Integer) {
+            intConstValue = defaultConstValue;   // Error has already been reported.
+        else if (intConstValue.type() != Type.Integer)
+          {
             var errorMsg = "Constant value should have type Integer.";
             // no error recovery required here
             errorHandler.reportError(error(intConstValue.position(), errorMsg));
             intConstValue = defaultConstValue;
-        }
+          }
 
         return (ConstValue) intConstValue;
-    }
+      }
 
-    private void match(Symbol expectedSymbol) throws IOException, ParserException {
+    /**
+     * Check that the current scanner symbol is the expected symbol.  If it
+     * is, then advance the scanner.  Otherwise, throw a ParserException.
+     */
+    private void match(Symbol expectedSymbol) throws IOException, ParserException
+      {
         if (scanner.symbol() == expectedSymbol)
             scanner.advance();
-        else {
-            StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-            String callerMethod = stackTraceElements[2].getMethodName();
+        else
+          {
             var errorMsg = "Expecting \"" + expectedSymbol + "\" but found \""
-                    + scanner.token() + "\" instead. @" + callerMethod;
+                         + scanner.token() + "\" instead.";
             throw error(errorMsg);
-        }
-    }
+          }
+      }
 
-    private void matchCurrentSymbol() throws IOException {
+    /**
+     * Advance the scanner.  This method represents an unconditional
+     * match with the current scanner symbol.
+     */
+    private void matchCurrentSymbol() throws IOException
+      {
         scanner.advance();
-    }
+      }
 
-    private void recover(Set<Symbol> followers) throws IOException {
+    /**
+     * Advance the scanner until the current symbol is one of the
+     * symbols in the specified set of follows.
+     */
+    private void recover(Set<Symbol> followers) throws IOException
+      {
         scanner.advanceTo(followers);
-    }
+      }
 
-    private ParserException error(String errorMsg) {
+    /**
+     * Create a parser exception with the specified error message and
+     * the current scanner position.
+     */
+    private ParserException error(String errorMsg)
+      {
         return error(scanner.position(), errorMsg);
-    }
+      }
 
-    private ParserException error(Position errorPos, String errorMsg) {
+    /**
+     * Create a parser exception with the specified error position and error message.
+     */
+    private ParserException error(Position errorPos, String errorMsg)
+      {
         return new ParserException(errorPos, errorMsg);
-    }
+      }
 
-    private InternalCompilerException internalError(String errorMsg) {
+    /**
+     * Create an internal compiler exception with the specified error
+     * message and the current scanner position.
+     */
+    private InternalCompilerException internalError(String errorMsg)
+      {
         return new InternalCompilerException(scanner.position(), errorMsg);
-    }
-}
+      }
+  }

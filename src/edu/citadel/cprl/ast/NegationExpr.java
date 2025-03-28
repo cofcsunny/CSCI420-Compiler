@@ -39,8 +39,9 @@ public class NegationExpr extends UnaryExpr {
     public void emit() throws CodeGenException {
         operand().emit();
     	
-    	if (operator().symbol() == Symbol.minus)
-            emit("NOT");
+    	if (operator().symbol() == Symbol.minus){
+            emit("NEG");
+        }
         else if (operator().symbol() == Symbol.bitwiseNot)
             emit("BITWISE_NOT");
         else 

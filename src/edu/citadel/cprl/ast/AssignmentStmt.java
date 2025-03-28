@@ -2,6 +2,7 @@ package edu.citadel.cprl.ast;
 
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
+import edu.citadel.common.InternalCompilerException;
 import edu.citadel.common.Position;
 
 /**
@@ -54,9 +55,11 @@ public class AssignmentStmt extends Statement {
     public void emit() throws CodeGenException {
         variable.emit();
     	expr.emit();
-    	
+        emitStoreInst(expr.type());
+
     	if(variable.type() != expr.type()) {
-    		throw new CodeGenException(variable.position(), "Error in Code generation, var type doesn't match expression type");
+            var errorMsg = "Error in Code generation, var type doesn't match expression type";
+    		throw new CodeGenException(variable.position(), errorMsg);
     	}
     }
 }

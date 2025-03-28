@@ -53,7 +53,11 @@ public class MultiplyingExpr extends BinaryExpr {
             case leftShift -> emit("SHL");
             case rightShift -> emit("SHR");
             case bitwiseAnd -> emit("BITAND");
-	    	default -> throw new CodeGenException(operator().position(), "Unknown multiplying operator.");
+	    	default -> {
+                var errorPos = operator().position();
+                var errorMsg = "Invalid multiplying operator.";
+                throw new InternalCompilerException(errorPos, errorMsg);
+            }
     	}
     }
 }
