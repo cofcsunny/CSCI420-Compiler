@@ -46,14 +46,14 @@ public class MultiplyingExpr extends BinaryExpr {
     public void emit() throws CodeGenException {
         leftOperand().emit();
     	rightOperand().emit();
-        
     	switch(operator().symbol()) {
 	    	case times -> emit("MUL");
 	    	case divide -> emit("DIV");
 	    	case modRW -> emit("MOD");
             case leftShift -> emit("SHL");
             case rightShift -> emit("SHR");
-	    	default -> throw new CodeGenException(operator().position(), "Unknown multiplying operator");
+            case bitwiseAnd -> emit("BITAND");
+	    	default -> throw new CodeGenException(operator().position(), "Unknown multiplying operator.");
     	}
     }
 }
