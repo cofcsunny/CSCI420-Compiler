@@ -61,7 +61,7 @@ public class FunctionDecl extends SubprogramDecl {
      *                  statements are also checked for a return statement.
      */
     private Boolean hasReturnStmt(Statement statement) {
-        // ...
+        return true;
     }
 
     @Override

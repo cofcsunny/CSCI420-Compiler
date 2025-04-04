@@ -35,7 +35,7 @@ public class NotExpr extends UnaryExpr {
             Symbol b = operator().symbol();
             if (operator().symbol() == Symbol.notRW) {
                 if (operand().type() != Type.Boolean) {
-                    var errorMsg = "Operator 'not' requires an boolean operand.";
+                    var errorMsg = "Expression following \"not\" operator should have type Boolean.";
                     var errorPos = operand().position();
                     throw new ConstraintException(errorPos, errorMsg);
                 }
@@ -62,7 +62,7 @@ public class NotExpr extends UnaryExpr {
     	if(operator().symbol() ==  Symbol.notRW)
     		emit("NOT");
     	else if(operator().symbol() == Symbol.bitwiseNot)
-    		emit("BITWISE_NOT");
+    		emit("BITNOT");
     	else
     		throw new CodeGenException(operand().position(), "Unexpected operator in NotExpr.");
     }

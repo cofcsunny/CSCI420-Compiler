@@ -28,7 +28,7 @@ public class ReadStmt extends Statement {
             Type varType = variable.type();
             if (!(varType == Type.Integer || varType == Type.Char || varType instanceof StringType)) {
                 throw new ConstraintException(variable.position(),
-                        "Invalid type for read statement, expecting Integer, Char, or String.");
+                        "Input supported only for integers, characters, and strings.");
             }
         } catch (ConstraintException e) {
             errorHandler().reportError(e);

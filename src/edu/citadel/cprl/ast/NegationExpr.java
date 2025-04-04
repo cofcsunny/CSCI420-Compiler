@@ -26,7 +26,7 @@ public class NegationExpr extends UnaryExpr {
     public void checkConstraints() {
         try {
             if (operand().type() != Type.Integer) {
-                var errorMsg = "Operand should have type Integer.";
+                var errorMsg = "Expression following \"-\" operator is not an Integer expression.";
                 var errorPos = operand().position();
                 throw error(errorPos, errorMsg);
             }
@@ -43,7 +43,7 @@ public class NegationExpr extends UnaryExpr {
             emit("NEG");
         }
         else if (operator().symbol() == Symbol.bitwiseNot)
-            emit("BITWISE_NOT");
+            emit("BITNOT");
         else 
             throw new CodeGenException(operator().position(), "Unexpected operator in NegationExpr.");
     }

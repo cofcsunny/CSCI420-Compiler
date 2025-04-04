@@ -36,16 +36,9 @@ public class AssignmentStmt extends Statement {
         try {
             variable.checkConstraints();
             expr.checkConstraints();
-            if (!variable.type().equals(expr.type())) {
-                throw error(assignPosition, "Type mismatch in assignment: cannot assign "
-                        + expr.type() + " to " + variable.type() + ".");
+            if (!matchTypes(variable.type(), expr)) {
+                throw error(assignPosition, "Type mismatch for assignment statement.");
             }
-            /*
-             * TODO
-             * if (true) {
-             * throw error(assignPosition, "Cannot assign to a constant variable.");
-             * }
-             */
         } catch (ConstraintException ex) {
             errorHandler().reportError(ex);
         }
@@ -56,10 +49,5 @@ public class AssignmentStmt extends Statement {
         variable.emit();
     	expr.emit();
         emitStoreInst(expr.type());
-
-    	if(variable.type() != expr.type()) {
-            var errorMsg = "Error in Code generation, var type doesn't match expression type";
-    		throw new CodeGenException(variable.position(), errorMsg);
-    	}
     }
 }

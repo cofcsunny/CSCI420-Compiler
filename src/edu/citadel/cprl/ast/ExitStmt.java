@@ -27,7 +27,7 @@ public class ExitStmt extends Statement {
         try {
             if (whenExpr != null &&
                     whenExpr.type() != Type.Boolean) {
-                var errorMsg = "When expression should have type Boolean.";
+                var errorMsg = "The \"when\" expression should have type Boolean.";
                 throw error(whenExpr.position(), errorMsg);
             }
         } catch (ConstraintException e) {

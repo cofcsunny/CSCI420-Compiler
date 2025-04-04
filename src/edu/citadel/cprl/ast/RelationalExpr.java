@@ -31,16 +31,18 @@ public class RelationalExpr extends BinaryExpr {
         try {
             leftOperand().checkConstraints();
             rightOperand().checkConstraints();
-
-            if (leftOperand().type() != Type.Boolean
-                    || rightOperand().type() != Type.Boolean) {
-                var errorMsg = "Both operands of relational " +
-                        "expression must have type boolean";
-                var errorPos = leftOperand().position();
+            if (!leftOperand().type().equals(rightOperand().type())){
+                var errorMsg = "Type mismatch for left and right operands of a relational expression.";
+                var errorPos = operator().position();
+                throw new ConstraintException(errorPos, errorMsg);
+            }
+            if (!leftOperand().type().isScalar()) {
+                var errorMsg = "Only scalar types are permitted for a relational expression.";
+                var errorPos = operator().position();
                 throw new ConstraintException(errorPos, errorMsg);
             }
         } catch (ConstraintException e) {
-
+            errorHandler().reportError(e);
         }
     }
 
