@@ -15,9 +15,8 @@ public class ArrayType extends Type
      */
     public ArrayType(String typeName, int numElements, Type elementType)
       {
-        super(typeName, 0);
-// ... In call to superclass constructor, 0 is not correct as the size for the array type.
-// ... What is the size for the array type?  Hint: Read the book.
+        // we might need this for sub programs
+        super(typeName, elementType.size() * numElements);
         this.numElements = numElements;
         this.elementType = elementType;
       }
