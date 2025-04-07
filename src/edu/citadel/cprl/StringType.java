@@ -15,9 +15,7 @@ public class StringType extends Type
      */
     public StringType(String typeName, int capacity)
       {
-        super(typeName, 0);
-// ... In call to superclass constructor, 0 is not correct as the size for the string type.
-// ... What is the size for the string type?  Hint: Read the book.
+        super(typeName, Integer.size() + capacity*Char.size());
         this.capacity = capacity;
       }
 
