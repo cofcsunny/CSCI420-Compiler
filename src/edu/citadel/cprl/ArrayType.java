@@ -15,8 +15,9 @@ public class ArrayType extends Type
      */
     public ArrayType(String typeName, int numElements, Type elementType)
       {
-        // we might need this for sub programs
-        super(typeName, elementType.size() * numElements);
+        // elementType.size() * numElements 
+        // for when we need it, not rn
+        super(typeName, 0);
         this.numElements = numElements;
         this.elementType = elementType;
       }
