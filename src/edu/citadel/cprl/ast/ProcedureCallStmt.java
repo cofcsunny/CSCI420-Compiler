@@ -31,6 +31,26 @@ public class ProcedureCallStmt extends Statement {
     @Override
     public void checkConstraints() {
         // ...
+         var paramDecls = procDecl.parameterDecls();
+    	
+    	for (int i = 0; i < actualParams.size(); ++i) {
+    		var expr = actualParams.get(i);
+    		var paramDecl = paramDecls.get(i);
+    		
+    		if (expr.type() != paramDecl.type()) {
+    			error(expr.position(), "types do not match"); 
+    		}
+    		
+    		if (paramDecl.isVarParam()) {
+    			if(expr instanceof VariableExpr variableExpr) {
+    				expr = new Variable(variableExpr);
+    				actualParams.set(i, expr);
+    			}
+    			else {
+    				error(expr.position(), "Expression for a var parameter must be ...");
+    			}
+    		}
+    	}
     }
 
     /**
