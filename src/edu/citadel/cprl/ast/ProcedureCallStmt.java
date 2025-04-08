@@ -82,6 +82,10 @@ public class ProcedureCallStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-        // ... call addPadding before emitting any code
+        addPadding();
+    	
+    	for(Expression expr : actualParams) {
+    		expr.emit();
+    	}
     }
 }
