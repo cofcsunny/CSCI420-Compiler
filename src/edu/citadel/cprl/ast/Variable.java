@@ -69,14 +69,23 @@ public class Variable extends Expression {
                     setType(arrayType.elementType());
 
                     // check that the selector expression is not a field expression
-                    // ...
+                    if (expr instanceof FieldExpr) {
+                        var errorMsg = "Array selectors must be index expressions, not field expressions.";
+                        throw error(expr.position(), errorMsg);
+                    }
 
                     // check that the type of the index expression is Integer
-                    // ...
+                    if (expr.type() != Type.Integer) {
+                        var errorMsg = "Array index expression must have type Integer.";
+                        throw error(expr.position(), errorMsg);
+                    }
                 } else if (type() instanceof RecordType recType) {
                     // check that the selector expression is a field expression
-                    // ...
-
+                	if (!(expr instanceof FieldExpr)) {
+                	    var errorMsg = "Record selector must be a field expression.";
+                	    throw error(expr.position(), errorMsg);
+                	}
+                	
                     // Applying the selector effectively changes the
                     // variable's type to the type of the field.
                     var fieldExpr = (FieldExpr) expr;
@@ -148,7 +157,8 @@ public class Variable extends Expression {
                 expr.emit(); // emit the index
 
                 // multiply by size of array element type to get offset
-                // ...
+                emit("LDCINT " + arrayType.elementType().size());
+                emit("MUL");
 
                 // Note: No code to perform bounds checking for the index to
                 // ensure that the index is >= 0 and < number of elements.
@@ -161,7 +171,8 @@ public class Variable extends Expression {
 
                 if (fieldExpr.fieldDecl().offset() != 0) {
                     // add offset to the base address
-                    // ...
+                	emit("LDCINT " + fieldExpr.fieldDecl().offset());
+                	emit("ADD");
                 }
 
                 type = fieldExpr.fieldDecl().type();
