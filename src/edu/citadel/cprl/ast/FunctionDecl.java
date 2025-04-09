@@ -29,6 +29,11 @@ public class FunctionDecl extends SubprogramDecl {
     @Override
     public void checkConstraints() {
         // ... call super.checkConstraints() before checking any additional constraints
+        super.checkConstraints();
+    	
+    	if (type() == null) {
+            error("Function must have a return type.");
+        }
     }
 
     /**
