@@ -27,10 +27,32 @@ public class ReturnStmt extends Statement {
     @Override
     public void checkConstraints() {
         // ...
+    	 if (returnExpr != null) {
+    	        returnExpr.checkConstraints();
+
+    	        if (subprogramDecl instanceof FunctionDecl functionDecl) {
+    	            if (functionDecl.type() == null) {
+    	                error(returnPosition, "Cannot return a value from a function with void return type.");
+    	            } else if (!returnExpr.type().equals(functionDecl.type())) {
+    	                error(returnPosition, "Type of return expression does not match function return type.");
+    	            }
+    	        }
+    	    } else {
+    	        if (subprogramDecl instanceof FunctionDecl functionDecl
+    	                && !functionDecl.type().equals("none")) {
+    	            error(returnPosition, "Must return a value from a function with non-void return type.");
+    	        }
+    	    }
     }
 
     @Override
     public void emit() throws CodeGenException {
         // ...
+    	 if (returnExpr != null) {
+    	        returnExpr.emit();
+    	        emit("STO");
+    	    }
+
+    	    emit("RET");
     }
 }
