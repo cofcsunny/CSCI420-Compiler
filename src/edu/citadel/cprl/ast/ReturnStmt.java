@@ -26,7 +26,6 @@ public class ReturnStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-        // ...
     	 if (returnExpr != null) {
     	        returnExpr.checkConstraints();
 
@@ -47,12 +46,11 @@ public class ReturnStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-        // ...
-    	 if (returnExpr != null) {
+    	 /*if (returnExpr != null) {
     	        returnExpr.emit();
     	        emit("STO");
-    	    }
-
-    	    emit("RET");
+    	    }*/
+            int size = this.subprogramDecl.paramLength();
+    	    emit("RET " + size);
     }
 }
