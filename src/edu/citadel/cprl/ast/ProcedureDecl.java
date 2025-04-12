@@ -22,16 +22,19 @@ public class ProcedureDecl extends SubprogramDecl {
         setRelativeAddresses();
         emitLabel(subprogramLabel());
 
-        // no need to emit PROC instruction if varLength == 0
+        // Emit PROC instruction if there are local variables
         if (varLength() > 0)
             emit("PROC " + varLength());
 
+        // Emit code for initial declarations
         for (InitialDecl decl : initialDecls())
             decl.emit();
 
+        // Emit code for statements
         for (Statement statement : statements())
             statement.emit();
 
-        emit("RET " + paramLength()); // required for procedures
+        // Emit RET instruction with parameter length adjustment
+        emit("RET " + paramLength());
     }
 }

@@ -75,7 +75,6 @@ public class FunctionDecl extends SubprogramDecl {
     public void emit() throws CodeGenException {
         setRelativeAddresses();
         emitLabel(subprogramLabel());
-
         if (varLength() > 0){
             emit("PROC"+varLength());
         }
@@ -85,8 +84,6 @@ public class FunctionDecl extends SubprogramDecl {
         for (Statement statement : statements()){
             statement.emit();
         }
-        /*if (hasReturnStmt(statements())){
-            emit("RET " + paramLength());
-        }*/
+        emit("RET " + paramLength());
     }
 }

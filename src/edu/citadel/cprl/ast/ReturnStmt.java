@@ -46,11 +46,12 @@ public class ReturnStmt extends Statement {
 
     @Override
     public void emit() throws CodeGenException {
-    	 /*if (returnExpr != null) {
-    	        returnExpr.emit();
-    	        emit("STO");
-    	    }*/
-            int size = this.subprogramDecl.paramLength();
-    	    emit("RET " + size);
+        if (returnExpr != null) {
+            // Emit code for the return expression
+            returnExpr.emit();
+        }
+
+        // Emit RET instruction with parameter length adjustment
+        emit("RET " + subprogramDecl.paramLength());
     }
 }

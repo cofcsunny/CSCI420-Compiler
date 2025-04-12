@@ -116,13 +116,15 @@ public class FunctionCallExpr extends Expression {
     public void emit() throws CodeGenException {
         addPadding();
 
-        // allocate space on the stack for the return value
+        // Allocate space for the return value
         emit("ALLOC " + funDecl.type().size());
 
-        // emit code for actual parameters
+        // Emit code for actual parameters
         for (Expression expr : actualParams)
             expr.emit();
 
+        // Emit CALL instruction
         emit("CALL " + funDecl.subprogramLabel());
+
     }
 }
