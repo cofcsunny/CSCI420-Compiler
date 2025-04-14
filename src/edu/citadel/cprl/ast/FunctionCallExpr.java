@@ -56,9 +56,9 @@ public class FunctionCallExpr extends Expression {
             }
 
             // check constraints for each actual parameter
-            for (Expression expr : actualParams)
+            for (Expression expr : actualParams){
                 expr.checkConstraints();
-
+            }
             for (int i = 0; i < actualParams.size(); ++i) {
                 var expr = actualParams.get(i);
                 var paramDecl = paramDecls.get(i);
@@ -106,7 +106,13 @@ public class FunctionCallExpr extends Expression {
                 var padding = new Padding(stringType.size() - constValue.size());
                 actualParams.add(++j, padding);
             }
-
+            // check for var parameters
+            if(paramDecl.isVarParam()){
+                if(expr instanceof VariableExpr variableExpr){
+                    expr = new Variable(variableExpr);
+                    actualParams.set(i,expr);
+                }
+            }
             ++i;
             ++j;
         }
