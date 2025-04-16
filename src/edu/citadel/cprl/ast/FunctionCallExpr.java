@@ -111,13 +111,10 @@ public class FunctionCallExpr extends Expression
         this.funDecl = (FunctionDecl) idTable().get(funId.text());
         var paramDecls = funDecl.parameterDecls();
 
-        // can't use a for-loop here since the number of actual parameters
-        // can change with the insertion of padding for string types
         int i = 0;
         int j = 0;
 
-        while (i < paramDecls.size())
-          {
+        while (i < paramDecls.size()){
             var paramDecl = paramDecls.get(i);
             var expr = actualParams.get(j);
 
@@ -128,10 +125,19 @@ public class FunctionCallExpr extends Expression
                  var padding = new Padding(stringType.size() - constValue.size());
                  actualParams.add(++j, padding);
               }
-
+            if (paramDecl.isVarParam()) {
+    			if(expr instanceof VariableExpr variableExpr) {
+    				expr = new Variable(variableExpr);
+    				actualParams.set(i, expr);
+    			}
+    			else {
+                    var errorMsg = "Expression for a var parameter must be a variable.";
+    				error(expr.position(), errorMsg);
+    			}
+    		}
             ++i;
             ++j;
-          }
+        }
       }
 
     @Override

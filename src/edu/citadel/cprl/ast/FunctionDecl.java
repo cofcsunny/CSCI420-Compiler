@@ -29,13 +29,27 @@ public class FunctionDecl extends SubprogramDecl {
     @Override
     public void checkConstraints() {
         super.checkConstraints();
-
-        if (type() == null) {
-            error("Function must have a return type.");
-        } 
-        else if (!hasReturnStmt(statements())) {
-            error("Non-void function must contain a return statement.");
+        try {
+            if (type() == null) {
+                var errorMsg = "Function must have a return type.";
+                throw error(this.position(), errorMsg);
+            }
+            if (!hasReturnStmt(statements())) {
+                var errorMsg = "A function must have at least one return statement.";
+                throw error(this.position(), errorMsg);
+            }
+            var paramDecls = this.parameterDecls();
+            for (int i = 0; i < paramDecls.size(); ++i) {
+                var paramDecl = this.parameterDecls().get(i);
+                if (paramDecl.isVarParam()) {
+                    var errorMsg = "A function cannot have var parameters.";
+                    throw error(this.position(), errorMsg);
+                }
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
         }
+
     }
 
     /**
@@ -68,20 +82,26 @@ public class FunctionDecl extends SubprogramDecl {
      *                  statements are also checked for a return statement.
      */
     private Boolean hasReturnStmt(Statement statement) {
-        return true;
+        if (statement instanceof ReturnStmt) {
+            return true;
+        } else if (statement instanceof IfStmt) {
+            var stmt = (IfStmt) statement;
+            return hasReturnStmt(stmt.thenStmt());
+        }
+        return false;
     }
 
     @Override
     public void emit() throws CodeGenException {
         setRelativeAddresses();
         emitLabel(subprogramLabel());
-        if (varLength() > 0){
-            emit("PROC "+varLength());
+        if (varLength() > 0) {
+            emit("PROC " + varLength());
         }
-        for (InitialDecl decl : initialDecls()){
+        for (InitialDecl decl : initialDecls()) {
             decl.emit();
         }
-        for (Statement statement : statements()){
+        for (Statement statement : statements()) {
             statement.emit();
         }
         emit("RET " + paramLength());

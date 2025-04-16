@@ -3,6 +3,7 @@ package edu.citadel.cprl.ast;
 import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
 import edu.citadel.common.Position;
+import edu.citadel.cprl.Type;
 
 /**
  * The abstract syntax tree node for a return statement.
@@ -26,31 +27,42 @@ public class ReturnStmt extends Statement {
 
     @Override
     public void checkConstraints() {
-    	 if (returnExpr != null) {
-    	        returnExpr.checkConstraints();
-
-    	        if (subprogramDecl instanceof FunctionDecl functionDecl) {
-    	            if (functionDecl.type() == null) {
-    	                error(returnPosition, "Cannot return a value from a function with void return type.");
-    	            } else if (!returnExpr.type().equals(functionDecl.type())) {
-    	                error(returnPosition, "Type of return expression does not match function return type.");
-    	            }
-    	        }
-    	    } else {
-    	        if (subprogramDecl instanceof FunctionDecl functionDecl
-    	                && !functionDecl.type().equals("none")) {
-    	            error(returnPosition, "Must return a value from a function with non-void return type.");
-    	        }
-    	    }
+        try {
+            if (returnExpr != null) {
+                returnExpr.checkConstraints();
+                if (subprogramDecl instanceof FunctionDecl) {
+                    if (subprogramDecl.type().equals(Type.none)) {
+                        var errorMsg = "Cannot return a value from a function with void return type.";
+                        throw error(returnPosition, errorMsg);
+                    } else if (!returnExpr.type().equals(subprogramDecl.type())) {
+                        var errorMsg = "Return expression type does not match function return type.";
+                        throw error(returnExpr.position(), errorMsg);
+                    }
+                }
+                if (subprogramDecl instanceof ProcedureDecl) {
+                    var errorMsg = "Return expression allowed only within functions.";
+                    throw error(returnExpr.position(), errorMsg);
+                }
+            } else if (subprogramDecl instanceof FunctionDecl) {
+                if (!subprogramDecl.type().equals(Type.none)) {
+                    var errorMsg = "A return statement nested within a function must return a value.";
+                    throw error(returnPosition, errorMsg);
+                }
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 
     @Override
     public void emit() throws CodeGenException {
         if (returnExpr != null) {
             // Emit code for the return expression
-            emit("LDLADDR " + ((FunctionDecl)subprogramDecl).relAddr());
-            returnExpr.emit();
-            emitStoreInst(subprogramDecl.type());
+            if (subprogramDecl instanceof FunctionDecl) {
+                emit("LDLADDR " + ((FunctionDecl) subprogramDecl).relAddr());
+                returnExpr.emit();
+                emitStoreInst(subprogramDecl.type());
+            }
         }
 
         // Emit RET instruction with parameter length adjustment
