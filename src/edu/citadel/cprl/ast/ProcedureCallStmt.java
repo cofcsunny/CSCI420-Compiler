@@ -15,6 +15,7 @@ public class ProcedureCallStmt extends Statement
   {
     private Token procId;
     private List<Expression> actualParams;
+    
 
     // declaration of the procedure being called
     private ProcedureDecl procDecl;   // nonstructural reference
@@ -28,6 +29,7 @@ public class ProcedureCallStmt extends Statement
       {
         this.procId = procId;
         this.actualParams = actualParams;
+        
       }
 
     @Override
@@ -61,6 +63,7 @@ public class ProcedureCallStmt extends Statement
      */
     private void addPadding()
       {
+        this.procDecl = (ProcedureDecl) idTable().get(procId.text());
         var paramDecls = procDecl.parameterDecls();
 
         // can't use a for-loop here since the number of actual parameters
@@ -90,9 +93,6 @@ public class ProcedureCallStmt extends Statement
     @Override
     public void emit() throws CodeGenException {
         addPadding();
-
-        // allocate space on the stack for the return value
-        emit("ALLOC " + procDecl.type().size());
 
         // emit code for actual parameters
         for (Expression expr : actualParams)

@@ -29,11 +29,13 @@ public class FunctionCallExpr extends Expression
         super(funId.position());
         this.funId = funId;
         this.actualParams = actualParams;
+        
       }
 
     @Override
     public void checkConstraints()
       {
+        this.funDecl = (FunctionDecl) idTable().get(funId.text());
         try
           {
             // get the declaration for this function call from the identifier table
@@ -106,6 +108,7 @@ public class FunctionCallExpr extends Expression
      */
     private void addPadding()
       {
+        this.funDecl = (FunctionDecl) idTable().get(funId.text());
         var paramDecls = funDecl.parameterDecls();
 
         // can't use a for-loop here since the number of actual parameters

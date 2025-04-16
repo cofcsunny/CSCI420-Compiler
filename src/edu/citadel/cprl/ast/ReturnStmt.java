@@ -50,7 +50,7 @@ public class ReturnStmt extends Statement {
             // Emit code for the return expression
             emit("LDLADDR " + ((FunctionDecl)subprogramDecl).relAddr());
             returnExpr.emit();
-            emit("STOREW");
+            emitStoreInst(subprogramDecl.type());
         }
 
         // Emit RET instruction with parameter length adjustment

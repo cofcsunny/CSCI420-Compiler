@@ -76,7 +76,7 @@ public class FunctionDecl extends SubprogramDecl {
         setRelativeAddresses();
         emitLabel(subprogramLabel());
         if (varLength() > 0){
-            emit("PROC"+varLength());
+            emit("PROC "+varLength());
         }
         for (InitialDecl decl : initialDecls()){
             decl.emit();
