@@ -28,12 +28,13 @@ public class ProcedureCallStmt extends Statement
       {
         this.procId = procId;
         this.actualParams = actualParams;
+        procDecl = (ProcedureDecl) idTable().get(procId.text());
       }
 
     @Override
     public void checkConstraints() {
-        // ...
-         var paramDecls = procDecl.parameterDecls();
+        
+        var paramDecls = procDecl.parameterDecls();
     	
     	for (int i = 0; i < actualParams.size(); ++i) {
     		var expr = actualParams.get(i);
@@ -90,9 +91,14 @@ public class ProcedureCallStmt extends Statement
     @Override
     public void emit() throws CodeGenException {
         addPadding();
-    	
-    	for(Expression expr : actualParams) {
-    		expr.emit();
-    	}
+
+        // allocate space on the stack for the return value
+        emit("ALLOC " + procDecl.type().size());
+
+        // emit code for actual parameters
+        for (Expression expr : actualParams)
+            expr.emit();
+
+        emit("CALL " + procDecl.subprogramLabel());
     }
 }
