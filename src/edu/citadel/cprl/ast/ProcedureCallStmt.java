@@ -28,13 +28,12 @@ public class ProcedureCallStmt extends Statement
       {
         this.procId = procId;
         this.actualParams = actualParams;
-        procDecl = (ProcedureDecl) idTable().get(procId.text());
       }
 
     @Override
     public void checkConstraints() {
-        
-        var paramDecls = procDecl.parameterDecls();
+        this.procDecl = (ProcedureDecl) idTable().get(procId.text());
+        var paramDecls = this.procDecl.parameterDecls();
     	
     	for (int i = 0; i < actualParams.size(); ++i) {
     		var expr = actualParams.get(i);
