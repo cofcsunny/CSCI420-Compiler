@@ -12,46 +12,38 @@ import java.util.List;
 /**
  * The abstract syntax tree node for a function call expression.
  */
-public class FunctionCallExpr extends Expression
-  {
+public class FunctionCallExpr extends Expression {
     private Token funId;
     private List<Expression> actualParams;
 
     // declaration of the function being called
-    private FunctionDecl funDecl;   // nonstructural reference
+    private FunctionDecl funDecl; // nonstructural reference
 
     /**
      * Construct a function call expression with the function name (an identifier
      * token) and the list of actual parameters being passed as part of the call.
      */
-    public FunctionCallExpr(Token funId, List<Expression> actualParams)
-      {
+    public FunctionCallExpr(Token funId, List<Expression> actualParams) {
         super(funId.position());
         this.funId = funId;
         this.actualParams = actualParams;
-        
-      }
+
+    }
 
     @Override
-    public void checkConstraints()
-      {
+    public void checkConstraints() {
         this.funDecl = (FunctionDecl) idTable().get(funId.text());
-        try
-          {
+        try {
             // get the declaration for this function call from the identifier table
             var decl = idTable().get(funId.text());
 
-            if (decl == null)
-              {
+            if (decl == null) {
                 var errorMsg = "Function \"" + funId + "\" has not been declared.";
                 throw error(funId.position(), errorMsg);
-              }
-            else if (!(decl instanceof FunctionDecl))
-              {
+            } else if (!(decl instanceof FunctionDecl)) {
                 var errorMsg = "Identifier \"" + funId + "\" was not declared as a function.";
                 throw error(funId.position(), errorMsg);
-              }
-            else
+            } else
                 funDecl = (FunctionDecl) decl;
 
             // at this point funDecl should not be null
@@ -60,18 +52,16 @@ public class FunctionCallExpr extends Expression
             var paramDecls = funDecl.parameterDecls();
 
             // check that numbers of parameters match
-            if (actualParams.size() != paramDecls.size())
-              {
+            if (actualParams.size() != paramDecls.size()) {
                 var errorMsg = "Incorrect number of actual parameters.";
                 throw error(funId.position(), errorMsg);
-              }
+            }
 
             // check constraints for each actual parameter
             for (Expression expr : actualParams)
                 expr.checkConstraints();
 
-            for (int i = 0; i < actualParams.size(); ++i)
-              {
+            for (int i = 0; i < actualParams.size(); ++i) {
                 var expr = actualParams.get(i);
                 var paramDecl = paramDecls.get(i);
 
@@ -81,68 +71,58 @@ public class FunctionCallExpr extends Expression
 
                 // check that variable expressions are passed for var parameters
                 // (recall that arrays are passed as var parameters; checked in FunctionDecl)
-                if (paramDecl.isVarParam() && paramDecl.type() instanceof ArrayType)
-                  {
-                    if (expr instanceof VariableExpr variableExpr)
-                      {
+                if (paramDecl.isVarParam() && paramDecl.type() instanceof ArrayType) {
+                    if (expr instanceof VariableExpr variableExpr) {
                         // replace a variable expression by a variable
                         expr = new Variable(variableExpr);
                         actualParams.set(i, expr);
-                      }
-                    else
-                      {
+                    } else {
                         var errorMsg = "Expression for an array (var) parameter must be a variable.";
                         throw error(expr.position(), errorMsg);
-                      }
-                  }
-              }
-          }
-        catch (ConstraintException e)
-          {
+                    }
+                }
+            }
+        } catch (ConstraintException e) {
             errorHandler().reportError(e);
-          }
-      }
+        }
+    }
 
     /**
      * Add "synthetic" padding parameter for string literals if needed.
      */
-    private void addPadding()
-      {
+    private void addPadding() {
         this.funDecl = (FunctionDecl) idTable().get(funId.text());
         var paramDecls = funDecl.parameterDecls();
 
         int i = 0;
         int j = 0;
 
-        while (i < paramDecls.size()){
+        while (i < paramDecls.size()) {
             var paramDecl = paramDecls.get(i);
             var expr = actualParams.get(j);
 
             if (paramDecl.type() instanceof StringType stringType
-                && expr instanceof ConstValue constValue
-                && stringType.size() > constValue.size())
-              {
-                 var padding = new Padding(stringType.size() - constValue.size());
-                 actualParams.add(++j, padding);
-              }
+                    && expr instanceof ConstValue constValue
+                    && stringType.size() > constValue.size()) {
+                var padding = new Padding(stringType.size() - constValue.size());
+                actualParams.add(++j, padding);
+            }
             if (paramDecl.isVarParam()) {
-    			if(expr instanceof VariableExpr variableExpr) {
-    				expr = new Variable(variableExpr);
-    				actualParams.set(i, expr);
-    			}
-    			else {
+                if (expr instanceof VariableExpr variableExpr) {
+                    expr = new Variable(variableExpr);
+                    actualParams.set(i, expr);
+                } else {
                     var errorMsg = "Expression for a var parameter must be a variable.";
-    				error(expr.position(), errorMsg);
-    			}
-    		}
+                    error(expr.position(), errorMsg);
+                }
+            }
             ++i;
             ++j;
         }
-      }
+    }
 
     @Override
-    public void emit() throws CodeGenException
-      {
+    public void emit() throws CodeGenException {
         addPadding();
 
         // allocate space on the stack for the return value
@@ -153,5 +133,5 @@ public class FunctionCallExpr extends Expression
             expr.emit();
 
         emit("CALL " + funDecl.subprogramLabel());
-      }
-  }
+    }
+}

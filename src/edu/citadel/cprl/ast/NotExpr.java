@@ -32,7 +32,7 @@ public class NotExpr extends UnaryExpr {
         try {
             operand().checkConstraints();
 
-            Symbol b = operator().symbol();
+            // Symbol b = operator().symbol();
             if (operator().symbol() == Symbol.notRW) {
                 if (operand().type() != Type.Boolean) {
                     var errorMsg = "Expression following \"not\" operator should have type Boolean.";
@@ -58,12 +58,12 @@ public class NotExpr extends UnaryExpr {
     @Override
     public void emit() throws CodeGenException {
         operand().emit();
-    	
-    	if(operator().symbol() ==  Symbol.notRW)
-    		emit("NOT");
-    	else if(operator().symbol() == Symbol.bitwiseNot)
-    		emit("BITNOT");
-    	else
-    		throw new CodeGenException(operand().position(), "Unexpected operator in NotExpr.");
+
+        if (operator().symbol() == Symbol.notRW)
+            emit("NOT");
+        else if (operator().symbol() == Symbol.bitwiseNot)
+            emit("BITNOT");
+        else
+            throw new CodeGenException(operand().position(), "Unexpected operator in NotExpr.");
     }
 }

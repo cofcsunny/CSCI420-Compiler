@@ -37,7 +37,8 @@ public class AssignmentStmt extends Statement {
             variable.checkConstraints();
             expr.checkConstraints();
             if (!matchTypes(variable.type(), expr)) {
-                throw error(assignPosition, "Type mismatch for assignment statement.");
+                var errorMsg = "Type mismatch for assignment statement.";
+                throw error(assignPosition, errorMsg);
             }
         } catch (ConstraintException ex) {
             errorHandler().reportError(ex);
@@ -47,7 +48,7 @@ public class AssignmentStmt extends Statement {
     @Override
     public void emit() throws CodeGenException {
         variable.emit();
-    	expr.emit();
+        expr.emit();
         emitStoreInst(expr.type());
     }
 }
