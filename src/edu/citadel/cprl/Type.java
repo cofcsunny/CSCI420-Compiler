@@ -101,17 +101,16 @@ public class Type
     public static Type typeOf(Token literal)
       {
         var symbol = literal.symbol();
-        if (symbol == Symbol.intLiteral) {
-			return Type.Integer;
-		} else if (symbol == Symbol.charLiteral) {
-			return Type.Char;
-		} else if (symbol == Symbol.trueRW || symbol == Symbol.falseRW) {
-			return Type.Boolean;
-		} else if (symbol == Symbol.stringLiteral) {
-			return new StringType(capacityOf(literal.text()));
-		} else {
-			return Type.UNKNOWN;
-		}
+        if (symbol == Symbol.intLiteral)
+            return Type.Integer;
+        else if (symbol == Symbol.charLiteral)
+            return Type.Char;
+        else if (symbol == Symbol.trueRW || symbol == Symbol.falseRW)
+            return Type.Boolean;
+        else if (symbol == Symbol.stringLiteral)
+            return new StringType(capacityOf(literal.text()));
+        else
+            return Type.UNKNOWN;
       }
 
     /**

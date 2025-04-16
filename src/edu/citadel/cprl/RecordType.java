@@ -1,9 +1,9 @@
 package edu.citadel.cprl;
 
-import java.util.HashMap;
-import java.util.List;
-
 import edu.citadel.cprl.ast.FieldDecl;
+
+import java.util.List;
+import java.util.HashMap;
 
 /**
  * This class encapsulates the language concept of a record type
@@ -22,21 +22,16 @@ public class RecordType extends Type
      */
     public RecordType(String typeName, List<FieldDecl> fieldDecls)
       {
-// fieldDecls.stream().mapToInt(decl -> decl.size()).sum()
-// for when we need it, replaces 0
         super(typeName, 0);
+// ... In call to superclass constructor, 0 is not correct as the size for the record type.
+// ... What is the size for the record type?  Hint: Read the book.
         this.fieldDecls = fieldDecls;
 
-        for (FieldDecl fieldDecl : fieldDecls) {
-			fieldNameMap.put(fieldDecl.idToken().text(), fieldDecl);
-		}
+        for (FieldDecl fieldDecl : fieldDecls)
+            fieldNameMap.put(fieldDecl.idToken().text(), fieldDecl);
 
         // compute fieldDecl offsets
-        for (int i = 1; i < fieldDecls.size(); ++i)
-          {
-            FieldDecl prevDecl = fieldDecls.get(i - 1);
-            fieldDecls.get(i).setOffset(prevDecl.offset() + prevDecl.size());
-          }
+// ...
       }
 
     /**
