@@ -22,7 +22,7 @@ public class RecordType extends Type
      */
     public RecordType(String typeName, List<FieldDecl> fieldDecls)
       {
-        super(typeName, 0);
+        super(typeName, fieldDecls.stream().mapToInt(decl -> decl.size()).sum());
 // ... In call to superclass constructor, 0 is not correct as the size for the record type.
 // ... What is the size for the record type?  Hint: Read the book.
         this.fieldDecls = fieldDecls;
