@@ -86,7 +86,19 @@ public class FunctionDecl extends SubprogramDecl {
             return true;
         } else if (statement instanceof IfStmt) {
             var stmt = (IfStmt) statement;
-            return hasReturnStmt(stmt.thenStmt());
+            if (hasReturnStmt(stmt.thenStmt())) {
+                return true;
+            }
+        } else if (statement instanceof LoopStmt) {
+            var stmt = (LoopStmt) statement;
+            if (hasReturnStmt(stmt.statement())) {
+                return true;
+            }
+        } else if (statement instanceof CompoundStmt) {
+            var stmt = (CompoundStmt) statement;
+            if (hasReturnStmt(stmt.statements())) {
+                return true;
+            }
         }
         return false;
     }
