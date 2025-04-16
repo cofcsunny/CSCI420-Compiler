@@ -69,7 +69,10 @@ public class Variable extends Expression {
                     setType(arrayType.elementType());
 
                     // check that the selector expression is not a field expression
-                    // ...
+                    if (expr instanceof FieldExpr) {
+                        var errorMsg = "Selector expression may not be a field expression.";
+                        throw error(expr.position(), errorMsg);
+                    }
 
                     // check that the type of the index expression is Integer
                     // ...
@@ -148,7 +151,8 @@ public class Variable extends Expression {
                 expr.emit(); // emit the index
 
                 // multiply by size of array element type to get offset
-                // ...
+                emit("LDCINT " + arrayType.elementType().size());
+                emit("MUL");
 
                 // Note: No code to perform bounds checking for the index to
                 // ensure that the index is >= 0 and < number of elements.

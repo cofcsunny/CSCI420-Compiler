@@ -12,9 +12,8 @@ public class ArrayType extends Type {
      * Construct an array type with the specified type name, number
      * of elements, and the type of elements contained in the array.
      */
-    public ArrayType(String typeName, int numElements, Type elementType) 
-    {
-        super(typeName,  elementType.size() * numElements);
+    public ArrayType(String typeName, int numElements, Type elementType) {
+        super(typeName, elementType.size() * numElements);
         this.numElements = numElements;
         this.elementType = elementType;
     }

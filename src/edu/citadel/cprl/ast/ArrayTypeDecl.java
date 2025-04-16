@@ -28,6 +28,14 @@ public class ArrayTypeDecl extends InitialDecl {
     /* @TODO */
     @Override
     public void checkConstraints() {
-        // ...
+        try {
+            numElements.checkConstraints();
+            if (numElements.intValue() < 1) {
+                var errorMsg = "The index of an array must be positive.";
+                throw error(numElements.position(), errorMsg);
+            }
+        } catch (ConstraintException e) {
+            errorHandler().reportError(e);
+        }
     }
 }

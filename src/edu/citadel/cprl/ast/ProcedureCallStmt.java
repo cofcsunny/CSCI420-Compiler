@@ -82,7 +82,7 @@ public class ProcedureCallStmt extends Statement {
                     if (expr instanceof VariableExpr variableExpr) {
                         expr = new Variable(variableExpr);
                         actualParams.set(i, expr);
-                    } else {
+                    } else if (!(expr.type() instanceof ArrayType)) {
                         var errorMsg = "Expression for a var parameter must be a variable.";
                         throw error(expr.position(), errorMsg);
                     }

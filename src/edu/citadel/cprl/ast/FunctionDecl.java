@@ -42,8 +42,13 @@ public class FunctionDecl extends SubprogramDecl {
             for (int i = 0; i < paramDecls.size(); ++i) {
                 var paramDecl = this.parameterDecls().get(i);
                 if (paramDecl.isVarParam()) {
-                    var errorMsg = "A function cannot have var parameters.";
-                    throw error(this.position(), errorMsg);
+                    if (paramDecl.type() instanceof ArrayType) {
+                        // ...
+                    } else {
+                        var errorMsg = "A function cannot have var parameters.";
+                        throw error(this.position(), errorMsg);
+                    }
+
                 }
             }
         } catch (ConstraintException e) {
@@ -84,19 +89,16 @@ public class FunctionDecl extends SubprogramDecl {
     private Boolean hasReturnStmt(Statement statement) {
         if (statement instanceof ReturnStmt) {
             return true;
-        } else if (statement instanceof IfStmt) {
-            var stmt = (IfStmt) statement;
-            if (hasReturnStmt(stmt.thenStmt())) {
+        } else if (statement instanceof IfStmt ifStmt) {
+            if (hasReturnStmt(ifStmt.thenStmt())) {
                 return true;
             }
-        } else if (statement instanceof LoopStmt) {
-            var stmt = (LoopStmt) statement;
-            if (hasReturnStmt(stmt.statement())) {
+        } else if (statement instanceof LoopStmt loopStmt) {
+            if (hasReturnStmt(loopStmt.statement())) {
                 return true;
             }
-        } else if (statement instanceof CompoundStmt) {
-            var stmt = (CompoundStmt) statement;
-            if (hasReturnStmt(stmt.statements())) {
+        } else if (statement instanceof CompoundStmt compoundStmt) {
+            if (hasReturnStmt(compoundStmt.statements())) {
                 return true;
             }
         }
