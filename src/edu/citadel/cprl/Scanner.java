@@ -446,8 +446,8 @@ public final class Scanner {
         char h = (char) source.currentChar();
         scanBuffer.append(h);
         source.advance();
-        while (CharUtil.isHexDigit(source.currentChar())) {
-            scanBuffer.append(h);
+        while (CharUtil.isHexDigit((char) source.currentChar())) {
+            scanBuffer.append((char) source.currentChar());
             source.advance();
         }
     }
@@ -472,17 +472,18 @@ public final class Scanner {
         char s = (char) source.currentChar();
         scanBuffer.append(s);
         source.advance();
-        while (source.currentChar() != '"'){
+        while (source.currentChar() != '"') {
             checkGraphicChar(source.currentChar());
             s = (char) source.currentChar();
             if (s == '\\') {
                 scanBuffer.append(scanEscapedChar());
-                //source.advance();
+                // source.advance();
             } else {
                 scanBuffer.append(s);
                 source.advance();
             }
-        };
+        }
+        ;
         scanBuffer.append((char) source.currentChar());
         source.advance();
         return scanBuffer.toString();
@@ -497,9 +498,9 @@ public final class Scanner {
      * @return the string of characters for the char literal, including
      *         opening and closing single quotes.
      */
-    private String scanCharLiteral() throws ScannerException, IOException
-      {
-        // assumes that source.currentChar() is the opening single quote for the char literal
+    private String scanCharLiteral() throws ScannerException, IOException {
+        // assumes that source.currentChar() is the opening single quote for the char
+        // literal
         assert source.currentChar() == '\'';
 
         var errorMsg = "Invalid Char literal.";
@@ -515,8 +516,7 @@ public final class Scanner {
 
         if (c == '\\') { // escaped character
             scanBuffer.append(scanEscapedChar());
-        } else if (c == '\'')
-          {
+        } else if (c == '\'') {
             // either '' (empty) or '''; both are invalid
             source.advance();
             c = (char) source.currentChar();
@@ -526,26 +526,24 @@ public final class Scanner {
             }
 
             throw error(errorMsg);
-          }
-        else
-          {
+        } else {
             scanBuffer.append(c);
             source.advance();
-          }
+        }
 
-        c = (char) source.currentChar();   // should be the closing single quote
+        c = (char) source.currentChar(); // should be the closing single quote
         checkGraphicChar(c);
 
-        if (c == '\'')
-          {
-            scanBuffer.append(c);      // append the closing quote
+        if (c == '\'') {
+            scanBuffer.append(c); // append the closing quote
             source.advance();
-          } else {
+        } else {
             throw error(errorMsg);
         }
 
         return scanBuffer.toString();
-      }
+    }
+
     /**
      * Scans characters in the source file for an escaped character; i.e.,
      * a character preceded by a backslash. This method checks escape
