@@ -63,9 +63,10 @@ public class ProcedureCallStmt extends Statement {
                 var paramDecl = paramDecls.get(i);
 
                 // check that parameter types match
-                if (!matchTypes(paramDecl.type(), expr))
-                    throw error(expr.position(), "Parameter type mismatch.");
-
+                if (!matchTypes(paramDecl.type(), expr)) {
+                    var errorMsg = "Parameter type mismatch.";
+                    throw error(expr.position(), errorMsg);
+                }
                 // check that variable expressions are passed for var parameters
                 // (recall that arrays are passed as var parameters; checked in FunctionDecl)
                 if (paramDecl.isVarParam() && paramDecl.type() instanceof ArrayType) {

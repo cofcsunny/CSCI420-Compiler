@@ -96,15 +96,15 @@ public final class ConstValue extends Expression implements Initializer {
 
     @Override
     public void emit() throws CodeGenException {
-        if (type() == Type.Integer)
+        if (type().equals(Type.Integer)) {
             emit("LDCINT " + intValue());
-        else if (type() == Type.Boolean)
+        } else if (type().equals(Type.Boolean)) {
             emit("LDCB " + intValue());
-        else if (type() == Type.Char)
+        } else if (type().equals(Type.Char)) {
             emit("LDCCH " + literal.text());
-        else if (type() instanceof StringType)
+        } else if (type() instanceof StringType) {
             emit("LDCSTR " + literal.text());
-        else {
+        } else {
             var errorMsg = "Invalid type for constant value.";
             throw new CodeGenException(literal.position(), errorMsg);
         }
