@@ -48,7 +48,9 @@ public class ReturnStmt extends Statement {
     public void emit() throws CodeGenException {
         if (returnExpr != null) {
             // Emit code for the return expression
+            emit("LDLADDR " + ((FunctionDecl)subprogramDecl).relAddr());
             returnExpr.emit();
+            emit("STOREW");
         }
 
         // Emit RET instruction with parameter length adjustment
