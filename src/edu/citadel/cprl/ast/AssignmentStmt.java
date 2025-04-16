@@ -4,6 +4,7 @@ import edu.citadel.common.CodeGenException;
 import edu.citadel.common.ConstraintException;
 import edu.citadel.common.InternalCompilerException;
 import edu.citadel.common.Position;
+import edu.citadel.cprl.ArrayType;
 
 /**
  * The abstract syntax tree node for an assignment statement.
@@ -37,8 +38,13 @@ public class AssignmentStmt extends Statement {
             variable.checkConstraints();
             expr.checkConstraints();
             if (!matchTypes(variable.type(), expr)) {
-                var errorMsg = "Type mismatch for assignment statement.";
-                throw error(assignPosition, errorMsg);
+                if (!(variable.type() instanceof ArrayType)) {
+                    var errorMsg = "Type mismatch for assignment statement.";
+                    throw error(assignPosition, errorMsg);
+                } else if (!variable.type().equals(expr.type())) {
+                    var errorMsg = "Type mismatch for assignment statement.";
+                    throw error(assignPosition, errorMsg);
+                }
             }
         } catch (ConstraintException ex) {
             errorHandler().reportError(ex);

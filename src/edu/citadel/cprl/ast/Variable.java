@@ -75,7 +75,11 @@ public class Variable extends Expression {
                     }
 
                     // check that the type of the index expression is Integer
-                    // ...
+                    // ..
+                    if (!expr.type().equals(Type.Integer)) {
+                        var errorMsg = "Index expression must have type Integer.";
+                        throw error(expr.position(), errorMsg);
+                    }
                 } else if (type() instanceof RecordType recType) {
                     // check that the selector expression is a field expression
                     // ...
@@ -115,7 +119,7 @@ public class Variable extends Expression {
                         setType(Type.Char);
 
                         // must be an index expression; check that the type is Integer
-                        if (expr.type() != Type.Integer) {
+                        if (!expr.type().equals(Type.Integer)) {
                             var errorMsg = "Index expression must have type Integer.";
                             throw error(expr.position(), errorMsg);
                         }
